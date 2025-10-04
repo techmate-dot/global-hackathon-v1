@@ -108,10 +108,7 @@ class AuthProvider extends ChangeNotifier {
       // TODO: Implement actual profile update with Supabase
       await Future.delayed(const Duration(milliseconds: 500));
 
-      _currentUser = _currentUser!.copyWith(
-        name: name,
-        avatarUrl: avatarUrl,
-      );
+      _currentUser = _currentUser!.copyWith(name: name, avatarUrl: avatarUrl);
 
       _setLoading(false);
       return true;

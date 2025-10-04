@@ -96,10 +96,8 @@ class Memory {
   // Helper methods for state management
   bool get isDraft => state == MemoryState.draft;
   bool get isUploaded => state == MemoryState.uploaded;
-  bool get isProcessing => [
-        MemoryState.transcribing,
-        MemoryState.polishing,
-      ].contains(state);
+  bool get isProcessing =>
+      [MemoryState.transcribing, MemoryState.polishing].contains(state);
   bool get isComplete => state == MemoryState.published;
   bool get hasFailed => state == MemoryState.failed;
 
