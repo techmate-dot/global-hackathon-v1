@@ -21,6 +21,7 @@ class AppRouter {
 
   static final GoRouter _router = GoRouter(
     initialLocation: onboarding,
+    debugLogDiagnostics: true,
     routes: [
       // Onboarding Flow
       GoRoute(
@@ -87,9 +88,40 @@ class AppRouter {
 
     // Error handling
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Page Not Found')),
-      body: const Center(
-        child: Text('The page you are looking for does not exist.'),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Page Not Found'),
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error: ${state.error}',
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Location: ${state.uri}',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.go(onboarding),
+              child: const Text('Go to Onboarding'),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -100,20 +132,20 @@ class AppRouter {
 // Navigation Extension for easy access
 extension AppNavigation on BuildContext {
   // Core Navigation Methods
-  void goToOnboarding() => go(AppRouter.onboarding);
-  void goToHome() => go(AppRouter.home);
-  void goToRecording() => go(AppRouter.recording);
-  void goToLibrary() => go(AppRouter.library);
-  void goToProfile() => go(AppRouter.profile);
-  void goToChat() => go(AppRouter.chat);
+  void goToOnboarding() => GoRouter.of(this).go(AppRouter.onboarding);
+  void goToHome() => GoRouter.of(this).go(AppRouter.home);
+  void goToRecording() => GoRouter.of(this).go(AppRouter.recording);
+  void goToLibrary() => GoRouter.of(this).go(AppRouter.library);
+  void goToProfile() => GoRouter.of(this).go(AppRouter.profile);
+  void goToChat() => GoRouter.of(this).go(AppRouter.chat);
 
   // Navigation with Parameters
   void goToProcessing(String memoryId) {
-    go('${AppRouter.processing}?memoryId=$memoryId');
+    GoRouter.of(this).go('${AppRouter.processing}?memoryId=$memoryId');
   }
 
   void goToStoryView(String memoryId) {
-    go('${AppRouter.storyView}?memoryId=$memoryId');
+    GoRouter.of(this).go('${AppRouter.storyView}?memoryId=$memoryId');
   }
 
   // Navigation Flow Methods (matching PRD requirements)

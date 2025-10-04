@@ -1,5 +1,8 @@
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/navigation/app_router.dart';
+import '../../core/theme/design_tokens.dart';
 
 class RecordingScreen extends StatefulWidget {
   const RecordingScreen({super.key});
@@ -13,63 +16,87 @@ class _RecordingScreenState extends State<RecordingScreen>
   bool _isRecording = false;
   late AnimationController _pulseController;
   late AnimationController _waveController;
+  late AnimationController _micBounceController;
   Duration _recordingDuration = Duration.zero;
+  List<double> _waveformData = [];
 
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-      duration: const Duration(seconds: 1),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _waveController = AnimationController(
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
+
+    _waveController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    )..repeat();
+
+    _micBounceController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _generateWaveformData();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _waveController.dispose();
+    _micBounceController.dispose();
     super.dispose();
   }
 
-  void _toggleRecording() {
-    setState(() {
-      _isRecording = !_isRecording;
-    });
+  void _generateWaveformData() {
+    _waveformData = List.generate(40, (index) => Random().nextDouble());
+  }
 
+  void _toggleRecording() async {
     if (_isRecording) {
-      _startRecording();
-    } else {
       _stopRecording();
+    } else {
+      _startRecording();
     }
   }
 
-  void _startRecording() {
-    // Start recording logic here
-    // For now, simulate recording duration
+  void _startRecording() async {
+    await _micBounceController.forward();
+    await _micBounceController.reverse();
+
+    setState(() {
+      _isRecording = true;
+    });
+
+    _pulseController.repeat();
     _simulateRecording();
   }
 
   void _stopRecording() {
-    // Stop recording and navigate to processing
-    const memoryId = 'temp_memory_id'; // Generate actual ID
-    context.goToProcessing(memoryId);
+    setState(() {
+      _isRecording = false;
+    });
+
+    _pulseController.stop();
+
+    // Navigate to processing screen after brief delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      const memoryId = 'temp_memory_id';
+      context.goToProcessing(memoryId);
+    });
   }
 
   void _simulateRecording() {
-    // Simulate recording duration update
     Future.doWhile(() async {
       if (!_isRecording) return false;
       await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
+      if (mounted && _isRecording) {
         setState(() {
           _recordingDuration = Duration(
             seconds: _recordingDuration.inSeconds + 1,
           );
+          _generateWaveformData(); // Update waveform
         });
       }
       return _isRecording;
@@ -86,140 +113,357 @@ class _RecordingScreenState extends State<RecordingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Record Memory'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.onBack(),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      backgroundColor: EchoesColors.background,
+      body: SafeArea(
         child: Column(
           children: [
-            const Spacer(),
+            // Header
+            _buildHeader(context),
 
-            // Prompt
-            Card(
+            // Main content
+            Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.lightbulb_outline,
-                      size: 32,
-                      color: Colors.orange,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Today\'s Prompt',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Tell me about your favorite childhood hideout.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    const Spacer(),
+
+                    // Prompt Card
+                    _buildPromptCard(),
+
+                    const Spacer(flex: 2),
+
+                    // Recording Interface
+                    _buildRecordingInterface(),
+
+                    const SizedBox(height: 32),
+
+                    // Duration and Status
+                    _buildStatusInfo(),
+
+                    const Spacer(),
+
+                    // Waveform Visualization
+                    if (_isRecording) _buildWaveform(),
+
+                    const Spacer(),
+
+                    // Control Buttons
+                    _buildControlButtons(),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            const Spacer(),
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => context.onBack(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: EchoesColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: EchoesColors.textTertiary.withOpacity(0.2),
+                ),
+              ),
+              child: const Icon(
+                Icons.close,
+                color: EchoesColors.textSecondary,
+                size: 20,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'Record Memory',
+            style: EchoesTypography.headlineSmall.copyWith(
+              color: EchoesColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          const SizedBox(width: 40), // Balance the close button
+        ],
+      ),
+    );
+  }
 
-            // Recording Animation
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                return Container(
-                  width: 200 + (_pulseController.value * 40),
-                  height: 200 + (_pulseController.value * 40),
+  Widget _buildPromptCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: EchoesColors.storyBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: EchoesColors.accent.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: EchoesColors.accent.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.lightbulb_outline,
+              color: EchoesColors.accent,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Today\'s Prompt',
+            style: EchoesTypography.bodyLarge.copyWith(
+              color: EchoesColors.accent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tell me about your favorite childhood hideout. What made it so special?',
+            textAlign: TextAlign.center,
+            style: EchoesTypography.bodyLarge.copyWith(
+              color: EchoesColors.textPrimary,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecordingInterface() {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer pulse rings
+            if (_isRecording) ...[
+              for (int i = 0; i < 3; i++)
+                Container(
+                  width: 200 + (i * 30) + (_pulseController.value * 60),
+                  height: 200 + (i * 30) + (_pulseController.value * 60),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _isRecording
-                        ? Colors.red.withOpacity(0.1)
-                        : Colors.green.withOpacity(0.1),
+                    border: Border.all(
+                      color: EchoesColors.recordingActive.withOpacity(
+                        0.3 - (i * 0.1) - (_pulseController.value * 0.2),
+                      ),
+                      width: 2,
+                    ),
                   ),
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: _toggleRecording,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _isRecording ? Colors.red : Colors.green,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_isRecording ? Colors.red : Colors.green)
-                                  .withOpacity(0.3),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
+                ),
+            ],
+
+            // Main microphone button
+            AnimatedBuilder(
+              animation: _micBounceController,
+              builder: (context, child) {
+                final scale = 1.0 + (_micBounceController.value * 0.1);
+                return Transform.scale(
+                  scale: scale,
+                  child: GestureDetector(
+                    onTap: _toggleRecording,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: _isRecording
+                              ? [
+                                  EchoesColors.recordingActive,
+                                  EchoesColors.recordingActive.withOpacity(0.8),
+                                ]
+                              : [
+                                  EchoesColors.primary,
+                                  EchoesColors.primary.withOpacity(0.8),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        child: Icon(
-                          _isRecording ? Icons.stop : Icons.mic,
-                          size: 48,
-                          color: Colors.white,
-                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                (_isRecording
+                                        ? EchoesColors.recordingActive
+                                        : EchoesColors.primary)
+                                    .withOpacity(0.4),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                        size: 48,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 );
               },
             ),
+          ],
+        );
+      },
+    );
+  }
 
-            const SizedBox(height: 24),
-
-            // Recording Duration
-            Text(
-              _formatDuration(_recordingDuration),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Instructions
-            Text(
-              _isRecording
-                  ? 'Tap to stop recording'
-                  : 'Tap the microphone to start',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-
-            const Spacer(),
-
-            // Waveform placeholder
-            if (_isRecording)
+  Widget _buildStatusInfo() {
+    return Column(
+      children: [
+        Text(
+          _formatDuration(_recordingDuration),
+          style: EchoesTypography.headlineLarge.copyWith(
+            color: _isRecording
+                ? EchoesColors.recordingActive
+                : EchoesColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontFeatures: [const FontFeature.tabularFigures()],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isRecording) ...[
               Container(
-                height: 60,
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: List.generate(20, (index) {
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 3,
-                      height: 10 + (index % 5) * 10.0,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    );
-                  }),
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: EchoesColors.recordingActive,
+                  shape: BoxShape.circle,
                 ),
               ),
-
-            const Spacer(),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              _isRecording
+                  ? 'Recording... Tap to stop'
+                  : 'Tap the microphone to start recording',
+              style: EchoesTypography.bodyMedium.copyWith(
+                color: EchoesColors.textSecondary,
+              ),
+            ),
           ],
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildWaveform() {
+    return AnimatedBuilder(
+      animation: _waveController,
+      builder: (context, child) {
+        return Container(
+          height: 80,
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: List.generate(_waveformData.length, (index) {
+              final baseHeight = 8.0;
+              final maxHeight = 60.0;
+              final animatedMultiplier = 0.3 + (_waveformData[index] * 0.7);
+              final height =
+                  baseHeight + (maxHeight - baseHeight) * animatedMultiplier;
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 3,
+                height: height,
+                decoration: BoxDecoration(
+                  color: EchoesColors.waveformActive,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildControlButtons() {
+    if (!_isRecording) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        // Pause button (future feature)
+        IconButton(
+          onPressed: null, // Disabled for now
+          icon: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: EchoesColors.textTertiary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.pause_rounded,
+              color: EchoesColors.textTertiary,
+            ),
+          ),
+        ),
+
+        // Stop and save button
+        ElevatedButton.icon(
+          onPressed: _stopRecording,
+          icon: const Icon(Icons.check_rounded),
+          label: const Text('Save & Continue'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: EchoesColors.success,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+          ),
+        ),
+
+        // Delete button
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _isRecording = false;
+              _recordingDuration = Duration.zero;
+            });
+            _pulseController.stop();
+          },
+          icon: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: EchoesColors.error.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.delete_outline_rounded,
+              color: EchoesColors.error,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import 'providers/memory_provider.dart';
 import 'providers/record_provider.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const EchoesApp());
 }
 
