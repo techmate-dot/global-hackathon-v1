@@ -11,7 +11,6 @@ app = FastAPI()
 # Load API key (you should put this in .env)
 load_dotenv()
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
-print(DEEPGRAM_API_KEY)
 dg_client = DeepgramClient(api_key=DEEPGRAM_API_KEY)
 
 
@@ -35,6 +34,8 @@ async def speech_to_text(file: UploadFile = File(...)):
 
         # Extract transcript
         transcript = response.results.channels[0].alternatives[0].transcript # type: ignore
+        # Clean up temporary file
+        os.remove(temp_file)
         return {"transcript": transcript}
 
     except Exception as e:
@@ -49,12 +50,6 @@ async def text_to_speech(
     output_file = "output.mp3"
 
     try:
-        # Generate speech
-        
-        print(text)
-        
-
-        
         response = dg_client.speak.v1.audio.generate(
             text=text,
         ) # type: ignore
