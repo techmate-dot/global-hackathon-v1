@@ -570,212 +570,217 @@ class _RecordingScreenState extends State<RecordingScreen>
   Widget _buildSaveDialog() {
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.black.withOpacity(0.1),
-            width: 0.629,
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.black.withOpacity(0.1),
+              width: 0.629,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icon and header
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFDCFCE7),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.save_outlined,
-                size: 32,
-                color: _RecordingConstants.primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Save Your Memory',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: _RecordingConstants.textPrimary,
-                letterSpacing: -0.45,
-                height: 28 / 20,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Give your recording a meaningful title',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: _RecordingConstants.textSecondary,
-                letterSpacing: -0.31,
-                height: 24 / 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Form
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Memory Title',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
-                    letterSpacing: -0.15,
-                    height: 14 / 14,
-                  ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon and header
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F5),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.transparent, width: 0.629),
-                  ),
-                  child: TextField(
-                    controller: _titleController,
-                    style: const TextStyle(
-                      fontSize: 16,
+                child: const Icon(
+                  Icons.save_outlined,
+                  size: 32,
+                  color: _RecordingConstants.primaryGreen,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Save Your Memory',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: _RecordingConstants.textPrimary,
+                  letterSpacing: -0.45,
+                  height: 28 / 20,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Give your recording a meaningful title',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: _RecordingConstants.textSecondary,
+                  letterSpacing: -0.31,
+                  height: 24 / 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+
+              // Form
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Memory Title',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       color: Colors.black,
-                      letterSpacing: -0.31,
+                      letterSpacing: -0.15,
+                      height: 14 / 14,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: "e.g., Grandpa's War Stories",
-                      hintStyle: TextStyle(
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F3F5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.transparent,
+                        width: 0.629,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _titleController,
+                      style: const TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF717182),
+                        color: Colors.black,
                         letterSpacing: -0.31,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      decoration: const InputDecoration(
+                        hintText: "e.g., Grandpa's War Stories",
+                        hintStyle: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF717182),
+                          letterSpacing: -0.31,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'Duration: ${_formatDuration(_recordingDuration)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: _RecordingConstants.textSecondary,
-                      letterSpacing: -0.15,
-                      height: 20 / 14,
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Duration: ${_formatDuration(_recordingDuration)}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: _RecordingConstants.textSecondary,
+                        letterSpacing: -0.15,
+                        height: 20 / 14,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Action buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.black.withOpacity(0.1),
-                            width: 0.629,
-                          ),
-                        ),
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            // Reset recording state
-                            setState(() {
-                              _recordingDuration = Duration.zero;
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.black.withOpacity(0.1),
+                              width: 0.629,
                             ),
                           ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.15,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              // Reset recording state
+                              setState(() {
+                                _recordingDuration = Duration.zero;
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: _RecordingConstants.primaryGreen,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: TextButton(
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-
-                            // Get the story processing provider
-                            final storyProvider = context
-                                .read<StoryProcessingProvider>();
-
-                            // Start processing with the recording data
-                            final title = _titleController.text.trim().isEmpty
-                                ? "My Memory"
-                                : _titleController.text.trim();
-
-                            // Navigate to processing screen
-                            context.goToProcessing('temp_memory_id');
-
-                            // Start processing in background with actual recording path
-                            await storyProvider.processRecording(
-                              audioFilePath: _recordingPath ?? '',
-                              memoryTitle: title,
-                              recordingDuration: _recordingDuration,
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Save & Process',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.15,
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.15,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _RecordingConstants.primaryGreen,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: TextButton(
+                            onPressed: () async {
+                              Navigator.of(context).pop();
+
+                              // Get the story processing provider
+                              final storyProvider = context
+                                  .read<StoryProcessingProvider>();
+
+                              // Start processing with the recording data
+                              final title = _titleController.text.trim().isEmpty
+                                  ? "My Memory"
+                                  : _titleController.text.trim();
+
+                              // Navigate to processing screen
+                              context.goToProcessing('temp_memory_id');
+
+                              // Start processing in background with actual recording path
+                              await storyProvider.processRecording(
+                                audioFilePath: _recordingPath ?? '',
+                                memoryTitle: title,
+                                recordingDuration: _recordingDuration,
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Save & Process',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ), // Close Column
+        ), // Close Container
+      ), // Close SingleChildScrollView
+    ); // Close Dialog
   }
 }
