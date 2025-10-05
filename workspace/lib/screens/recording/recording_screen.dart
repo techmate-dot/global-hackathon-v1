@@ -1,8 +1,80 @@
+import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/navigation/app_router.dart';
-import '../../core/theme/design_tokens.dart';
+
+// Figma-derived design constants for recording screen
+class _RecordingConstants {
+  // Colors
+  static const Color backgroundGradientStart = Color(0xFFEFF6FF);
+  static const Color backgroundGradientEnd = Color(0xFFF0FDF4);
+  static const Color primaryGreen = Color(0xFF00C950);
+  static const Color recordingRed = Color(0xFFFF4444);
+  static const Color textPrimary = Color(0xFF1E2939);
+  static const Color textSecondary = Color(0xFF4A5565);
+  static const Color textTertiary = Color(0xFF364153);
+  static const Color cardBackground = Color(0xFFFEFCE8);
+  static const Color cardBorder = Color(0xFFFFF085);
+  static const Color tipIconBackground = Color(0xFFFDC700);
+
+  // Sizes
+  static const double headerHeight = 79.994;
+  static const double smallButtonSize = 79.994;
+  static const double pauseStopButtonSize = 63.995;
+  static const double cardRadius = 14.0;
+  static const double waveformBarWidth = 2.997;
+  static const double waveformMaxHeight = 63.995;
+
+  // Typography
+  static const TextStyle headerTitle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: textPrimary,
+    letterSpacing: -0.44,
+    height: 28 / 18,
+  );
+  static const TextStyle headerSubtitle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textSecondary,
+    letterSpacing: -0.15,
+    height: 20 / 14,
+  );
+  static const TextStyle timerText = TextStyle(
+    fontSize: 36,
+    fontWeight: FontWeight.w600,
+    color: textPrimary,
+    height: 40 / 36,
+  );
+  static const TextStyle statusText = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w400,
+    color: textTertiary,
+    letterSpacing: -0.44,
+    height: 28 / 18,
+  );
+  static const TextStyle descriptionText = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textSecondary,
+    letterSpacing: -0.15,
+    height: 20 / 14,
+  );
+  static const TextStyle tipTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    letterSpacing: -0.31,
+    height: 24 / 16,
+  );
+  static const TextStyle tipContent = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textSecondary,
+    letterSpacing: -0.15,
+    height: 20 / 14,
+  );
+}
 
 class RecordingScreen extends StatefulWidget {
   const RecordingScreen({super.key});
@@ -14,46 +86,41 @@ class RecordingScreen extends StatefulWidget {
 class _RecordingScreenState extends State<RecordingScreen>
     with TickerProviderStateMixin {
   bool _isRecording = false;
-  late AnimationController _pulseController;
-  late AnimationController _waveController;
-  late AnimationController _micBounceController;
+  bool _isPaused = false;
+  late AnimationController _waveformController;
+  late Timer _timer;
   Duration _recordingDuration = Duration.zero;
-  List<double> _waveformData = [];
+  List<double> _waveformHeights = [];
+  final TextEditingController _titleController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    _waveformController = AnimationController(
+      duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-
-    _waveController = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    )..repeat();
-
-    _micBounceController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
     _generateWaveformData();
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _waveController.dispose();
-    _micBounceController.dispose();
+    _waveformController.dispose();
+    _titleController.dispose();
+    if (_isRecording) {
+      _timer.cancel();
+    }
     super.dispose();
   }
 
   void _generateWaveformData() {
-    _waveformData = List.generate(40, (index) => Random().nextDouble());
+    _waveformHeights = List.generate(
+      20,
+      (index) => Random().nextDouble() * _RecordingConstants.waveformMaxHeight,
+    );
   }
 
-  void _toggleRecording() async {
+  void _toggleRecording() {
     if (_isRecording) {
       _stopRecording();
     } else {
@@ -61,46 +128,50 @@ class _RecordingScreenState extends State<RecordingScreen>
     }
   }
 
-  void _startRecording() async {
-    await _micBounceController.forward();
-    await _micBounceController.reverse();
-
+  void _startRecording() {
     setState(() {
       _isRecording = true;
+      _isPaused = false;
     });
 
-    _pulseController.repeat();
-    _simulateRecording();
+    _waveformController.repeat();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_isPaused) {
+        setState(() {
+          _recordingDuration = Duration(
+            seconds: _recordingDuration.inSeconds + 1,
+          );
+          _generateWaveformData(); // Update waveform animation
+        });
+      }
+    });
+  }
+
+  void _pauseRecording() {
+    setState(() {
+      _isPaused = !_isPaused;
+    });
   }
 
   void _stopRecording() {
     setState(() {
       _isRecording = false;
+      _isPaused = false;
     });
 
-    _pulseController.stop();
+    _waveformController.stop();
+    _timer.cancel();
 
-    // Navigate to processing screen after brief delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      const memoryId = 'temp_memory_id';
-      context.goToProcessing(memoryId);
-    });
+    // Show save dialog
+    _showSaveDialog();
   }
 
-  void _simulateRecording() {
-    Future.doWhile(() async {
-      if (!_isRecording) return false;
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted && _isRecording) {
-        setState(() {
-          _recordingDuration = Duration(
-            seconds: _recordingDuration.inSeconds + 1,
-          );
-          _generateWaveformData(); // Update waveform
-        });
-      }
-      return _isRecording;
-    });
+  void _showSaveDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _buildSaveDialog(),
+    );
   }
 
   String _formatDuration(Duration duration) {
@@ -113,286 +184,187 @@ class _RecordingScreenState extends State<RecordingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: EchoesColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(context),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(-0.35, -1.0),
+            end: Alignment(0.35, 1.0),
+            colors: [
+              _RecordingConstants.backgroundGradientStart,
+              _RecordingConstants.backgroundGradientEnd,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 32),
 
-            // Main content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const Spacer(),
+                      // Timer
+                      _buildTimer(),
 
-                    // Prompt Card
-                    _buildPromptCard(),
+                      const SizedBox(height: 24),
 
-                    const Spacer(flex: 2),
+                      // Status text
+                      _buildStatusText(),
 
-                    // Recording Interface
-                    _buildRecordingInterface(),
+                      const SizedBox(height: 32),
 
-                    const SizedBox(height: 32),
+                      // Waveform or recording controls
+                      if (_isRecording) ...[
+                        _buildWaveform(),
+                        const SizedBox(height: 32),
+                        _buildRecordingControls(),
+                      ] else ...[
+                        const SizedBox(height: 40),
+                        _buildRecordButton(),
+                      ],
 
-                    // Duration and Status
-                    _buildStatusInfo(),
+                      const Spacer(),
 
-                    const Spacer(),
+                      // Recording tips card (only show when not recording)
+                      if (!_isRecording) _buildRecordingTipsCard(),
 
-                    // Waveform Visualization
-                    if (_isRecording) _buildWaveform(),
-
-                    const Spacer(),
-
-                    // Control Buttons
-                    _buildControlButtons(),
-
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      height: _RecordingConstants.headerHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => context.onBack(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: EchoesColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: EchoesColors.textTertiary.withOpacity(0.2),
-                ),
-              ),
-              child: const Icon(
-                Icons.close,
-                color: EchoesColors.textSecondary,
-                size: 20,
-              ),
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'Record Memory',
-            style: EchoesTypography.headlineSmall.copyWith(
-              color: EchoesColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          const SizedBox(width: 40), // Balance the close button
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPromptCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: EchoesColors.storyBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: EchoesColors.accent.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
+          // Back button
           Container(
-            width: 48,
-            height: 48,
+            width: 47.997,
+            height: 47.997,
             decoration: BoxDecoration(
-              color: EchoesColors.accent.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.8),
               borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.lightbulb_outline,
-              color: EchoesColors.accent,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Today\'s Prompt',
-            style: EchoesTypography.bodyLarge.copyWith(
-              color: EchoesColors.accent,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tell me about your favorite childhood hideout. What made it so special?',
-            textAlign: TextAlign.center,
-            style: EchoesTypography.bodyLarge.copyWith(
-              color: EchoesColors.textPrimary,
-              height: 1.4,
+            child: IconButton(
+              onPressed: () => context.goToHome(),
+              icon: const Icon(
+                Icons.arrow_back,
+                size: 16,
+                color: _RecordingConstants.textTertiary,
+              ),
             ),
           ),
+
+          // Title
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Text(
+                'Record Memory',
+                style: _RecordingConstants.headerTitle,
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Share your family story',
+                style: _RecordingConstants.headerSubtitle,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+
+          // Spacer to balance layout
+          const SizedBox(width: 47.997),
         ],
       ),
     );
   }
 
-  Widget _buildRecordingInterface() {
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer pulse rings
-            if (_isRecording) ...[
-              for (int i = 0; i < 3; i++)
-                Container(
-                  width: 200 + (i * 30) + (_pulseController.value * 60),
-                  height: 200 + (i * 30) + (_pulseController.value * 60),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: EchoesColors.recordingActive.withOpacity(
-                        0.3 - (i * 0.1) - (_pulseController.value * 0.2),
-                      ),
-                      width: 2,
-                    ),
-                  ),
-                ),
-            ],
-
-            // Main microphone button
-            AnimatedBuilder(
-              animation: _micBounceController,
-              builder: (context, child) {
-                final scale = 1.0 + (_micBounceController.value * 0.1);
-                return Transform.scale(
-                  scale: scale,
-                  child: GestureDetector(
-                    onTap: _toggleRecording,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: _isRecording
-                              ? [
-                                  EchoesColors.recordingActive,
-                                  EchoesColors.recordingActive.withOpacity(0.8),
-                                ]
-                              : [
-                                  EchoesColors.primary,
-                                  EchoesColors.primary.withOpacity(0.8),
-                                ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                (_isRecording
-                                        ? EchoesColors.recordingActive
-                                        : EchoesColors.primary)
-                                    .withOpacity(0.4),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                        size: 48,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      },
+  Widget _buildTimer() {
+    return Text(
+      _formatDuration(_recordingDuration),
+      style: _RecordingConstants.timerText,
     );
   }
 
-  Widget _buildStatusInfo() {
+  Widget _buildStatusText() {
     return Column(
       children: [
         Text(
-          _formatDuration(_recordingDuration),
-          style: EchoesTypography.headlineLarge.copyWith(
-            color: _isRecording
-                ? EchoesColors.recordingActive
-                : EchoesColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontFeatures: [const FontFeature.tabularFigures()],
-          ),
+          _isRecording ? 'Recording...' : 'Ready to record',
+          style: _RecordingConstants.statusText,
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_isRecording) ...[
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: EchoesColors.recordingActive,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              _isRecording
-                  ? 'Recording... Tap to stop'
-                  : 'Tap the microphone to start recording',
-              style: EchoesTypography.bodyMedium.copyWith(
-                color: EchoesColors.textSecondary,
-              ),
-            ),
-          ],
+        Text(
+          _isRecording
+              ? 'Share your memories and stories for the\nnext generation'
+              : 'Tap the microphone to start recording your family story',
+          style: _RecordingConstants.descriptionText,
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
+  Widget _buildRecordButton() {
+    return GestureDetector(
+      onTap: _toggleRecording,
+      child: Container(
+        width: _RecordingConstants.smallButtonSize,
+        height: _RecordingConstants.smallButtonSize,
+        decoration: BoxDecoration(
+          color: _RecordingConstants.primaryGreen,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.mic, size: 16, color: Colors.white),
+      ),
+    );
+  }
+
   Widget _buildWaveform() {
     return AnimatedBuilder(
-      animation: _waveController,
+      animation: _waveformController,
       builder: (context, child) {
         return Container(
-          height: 80,
-          margin: const EdgeInsets.symmetric(horizontal: 20),
+          height: _RecordingConstants.waveformMaxHeight,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: List.generate(_waveformData.length, (index) {
-              final baseHeight = 8.0;
-              final maxHeight = 60.0;
-              final animatedMultiplier = 0.3 + (_waveformData[index] * 0.7);
-              final height =
-                  baseHeight + (maxHeight - baseHeight) * animatedMultiplier;
-
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 3,
-                height: height,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(_waveformHeights.length, (index) {
+              return Container(
+                width: _RecordingConstants.waveformBarWidth,
+                height: _waveformHeights[index],
+                margin: const EdgeInsets.symmetric(horizontal: 2),
                 decoration: BoxDecoration(
-                  color: EchoesColors.waveformActive,
+                  color: _RecordingConstants.primaryGreen,
                   borderRadius: BorderRadius.circular(2),
                 ),
               );
@@ -403,67 +375,297 @@ class _RecordingScreenState extends State<RecordingScreen>
     );
   }
 
-  Widget _buildControlButtons() {
-    if (!_isRecording) return const SizedBox.shrink();
-
+  Widget _buildRecordingControls() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Pause button (future feature)
-        IconButton(
-          onPressed: null, // Disabled for now
-          icon: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: EchoesColors.textTertiary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(24),
+        // Pause button
+        Container(
+          width: _RecordingConstants.pauseStopButtonSize,
+          height: _RecordingConstants.pauseStopButtonSize,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.black.withOpacity(0.1),
+              width: 1.887,
             ),
-            child: const Icon(
-              Icons.pause_rounded,
-              color: EchoesColors.textTertiary,
+          ),
+          child: IconButton(
+            onPressed: _pauseRecording,
+            icon: Icon(
+              _isPaused ? Icons.play_arrow : Icons.pause,
+              size: 16,
+              color: _RecordingConstants.textTertiary,
             ),
           ),
         ),
 
-        // Stop and save button
-        ElevatedButton.icon(
-          onPressed: _stopRecording,
-          icon: const Icon(Icons.check_rounded),
-          label: const Text('Save & Continue'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: EchoesColors.success,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
-            ),
-          ),
-        ),
+        const SizedBox(width: 24),
 
-        // Delete button
-        IconButton(
-          onPressed: () {
-            setState(() {
-              _isRecording = false;
-              _recordingDuration = Duration.zero;
-            });
-            _pulseController.stop();
-          },
-          icon: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: EchoesColors.error.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Icon(
-              Icons.delete_outline_rounded,
-              color: EchoesColors.error,
+        // Stop button
+        Container(
+          width: _RecordingConstants.pauseStopButtonSize,
+          height: _RecordingConstants.pauseStopButtonSize,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFFFA2A2), width: 1.887),
+          ),
+          child: IconButton(
+            onPressed: _stopRecording,
+            icon: const Icon(
+              Icons.stop,
+              size: 16,
+              color: _RecordingConstants.recordingRed,
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildRecordingTipsCard() {
+    return Container(
+      padding: const EdgeInsets.all(16.628),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_RecordingConstants.cardBackground, Color(0xFFFFFBEB)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        border: Border.all(color: _RecordingConstants.cardBorder, width: 0.629),
+        borderRadius: BorderRadius.circular(_RecordingConstants.cardRadius),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon
+          Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(
+              color: _RecordingConstants.tipIconBackground,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('💡', style: TextStyle(fontSize: 14)),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Recording Tips', style: _RecordingConstants.tipTitle),
+                SizedBox(height: 4),
+                Text(
+                  'Find a quiet space and speak clearly. Share specific details, names, and emotions to make the story more engaging for kids.',
+                  style: _RecordingConstants.tipContent,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSaveDialog() {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.black.withOpacity(0.1),
+            width: 0.629,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon and header
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.save_outlined,
+                size: 32,
+                color: _RecordingConstants.primaryGreen,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Save Your Memory',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: _RecordingConstants.textPrimary,
+                letterSpacing: -0.45,
+                height: 28 / 20,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Give your recording a meaningful title',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: _RecordingConstants.textSecondary,
+                letterSpacing: -0.31,
+                height: 24 / 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+
+            // Form
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Memory Title',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                    letterSpacing: -0.15,
+                    height: 14 / 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F3F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.transparent, width: 0.629),
+                  ),
+                  child: TextField(
+                    controller: _titleController,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
+                      letterSpacing: -0.31,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: "e.g., Grandpa's War Stories",
+                      hintStyle: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF717182),
+                        letterSpacing: -0.31,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'Duration: ${_formatDuration(_recordingDuration)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: _RecordingConstants.textSecondary,
+                      letterSpacing: -0.15,
+                      height: 20 / 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.black.withOpacity(0.1),
+                            width: 0.629,
+                          ),
+                        ),
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            // Reset recording state
+                            setState(() {
+                              _recordingDuration = Duration.zero;
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: -0.15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: _RecordingConstants.primaryGreen,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            // Navigate to home after saving
+                            context.goToHome();
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Save & Process',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: -0.15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
