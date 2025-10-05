@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/navigation/app_router.dart';
 import '../../providers/story_processing_provider.dart';
 
@@ -94,6 +98,11 @@ class _RecordingScreenState extends State<RecordingScreen>
   Duration _recordingDuration = Duration.zero;
   List<double> _waveformHeights = [];
   final TextEditingController _titleController = TextEditingController();
+  
+  // Audio recording
+  FlutterSoundRecorder? _recorder;
+  String? _recordingPath;
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -103,6 +112,37 @@ class _RecordingScreenState extends State<RecordingScreen>
       vsync: this,
     );
     _generateWaveformData();
+    _initializeRecorder();
+  }
+
+  Future<void> _initializeRecorder() async {
+    try {
+      // Request microphone permission
+      final permission = await Permission.microphone.request();
+      if (!permission.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Microphone permission is required for recording')),
+          );
+        }
+        return;
+      }
+
+      // Initialize recorder
+      _recorder = FlutterSoundRecorder();
+      await _recorder!.openRecorder();
+      
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      print('Error initializing recorder: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to initialize recorder: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -112,6 +152,7 @@ class _RecordingScreenState extends State<RecordingScreen>
     if (_isRecording) {
       _timer.cancel();
     }
+    _recorder?.closeRecorder();
     super.dispose();
   }
 
@@ -130,23 +171,54 @@ class _RecordingScreenState extends State<RecordingScreen>
     }
   }
 
-  void _startRecording() {
-    setState(() {
-      _isRecording = true;
-      _isPaused = false;
-    });
+  Future<void> _startRecording() async {
+    if (!_isInitialized || _recorder == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recorder not initialized')),
+      );
+      return;
+    }
 
-    _waveformController.repeat();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isPaused) {
-        setState(() {
-          _recordingDuration = Duration(
-            seconds: _recordingDuration.inSeconds + 1,
-          );
-          _generateWaveformData(); // Update waveform animation
-        });
+    try {
+      // Create unique recording file path
+      final directory = await getApplicationDocumentsDirectory();
+      final recordingsDir = Directory('${directory.path}/recordings');
+      if (!await recordingsDir.exists()) {
+        await recordingsDir.create(recursive: true);
       }
-    });
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      _recordingPath = '${recordingsDir.path}/recording_$timestamp.aac';
+
+      // Start recording
+      await _recorder!.startRecorder(
+        toFile: _recordingPath,
+        codec: Codec.aacADTS,
+      );
+
+      setState(() {
+        _isRecording = true;
+        _isPaused = false;
+        _recordingDuration = Duration.zero;
+      });
+
+      _waveformController.repeat();
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!_isPaused) {
+          setState(() {
+            _recordingDuration = Duration(
+              seconds: _recordingDuration.inSeconds + 1,
+            );
+            _generateWaveformData(); // Update waveform animation
+          });
+        }
+      });
+    } catch (e) {
+      print('Error starting recording: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to start recording: $e')),
+      );
+    }
   }
 
   void _pauseRecording() {
@@ -155,17 +227,29 @@ class _RecordingScreenState extends State<RecordingScreen>
     });
   }
 
-  void _stopRecording() {
-    setState(() {
-      _isRecording = false;
-      _isPaused = false;
-    });
+  Future<void> _stopRecording() async {
+    if (!_isRecording || _recorder == null) return;
 
-    _waveformController.stop();
-    _timer.cancel();
+    try {
+      // Stop the actual recording
+      await _recorder!.stopRecorder();
+      
+      setState(() {
+        _isRecording = false;
+        _isPaused = false;
+      });
 
-    // Show save dialog
-    _showSaveDialog();
+      _waveformController.stop();
+      _timer.cancel();
+
+      // Show save dialog
+      _showSaveDialog();
+    } catch (e) {
+      print('Error stopping recording: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to stop recording: $e')),
+      );
+    }
   }
 
   void _showSaveDialog() {
@@ -231,7 +315,10 @@ class _RecordingScreenState extends State<RecordingScreen>
                       const Spacer(),
 
                       // Recording tips card (only show when not recording)
-                      if (!_isRecording) _buildRecordingTipsCard(),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: !_isRecording ? _buildRecordingTipsCard() : const SizedBox.shrink(),
+                      ),
 
                       const SizedBox(height: 16),
                     ],
@@ -651,12 +738,12 @@ class _RecordingScreenState extends State<RecordingScreen>
                                 ? "My Memory"
                                 : _titleController.text.trim();
 
-                            // Navigate to processing screen\n                            context.goToProcessing('temp_memory_id');
+                            // Navigate to processing screen
+                            context.goToProcessing('temp_memory_id');
 
-                            // Start processing in background
+                            // Start processing in background with actual recording path
                             await storyProvider.processRecording(
-                              audioFilePath:
-                                  'temp_recording_path.wav', // TODO: Use actual recording path
+                              audioFilePath: _recordingPath ?? '',
                               memoryTitle: title,
                               recordingDuration: _recordingDuration,
                             );

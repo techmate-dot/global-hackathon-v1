@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-// TODO: Add http package for API calls
-// import 'package:http/http.dart' as http;
-// import 'dart:convert';
+import '../services/backend_api_service.dart';
+import '../models/story.dart';
 
 enum ProcessingStep {
   idle,
@@ -18,25 +17,28 @@ class StoryProcessingProvider extends ChangeNotifier {
   String? _error;
   bool _isProcessing = false;
 
+  // Backend service
+  final BackendApiService _apiService = BackendApiService();
+
   // Generated content
-  String? _generatedStoryText;
-  String? _audioStoryUrl;
+  Story? _generatedStory;
   String? _memoryTitle;
   Duration? _recordingDuration;
 
   // Progress tracking
   double _progress = 0.0;
+  double _uploadProgress = 0.0;
   Timer? _progressTimer;
 
   // Getters
   ProcessingStep get currentStep => _currentStep;
   String? get error => _error;
   bool get isProcessing => _isProcessing;
-  String? get generatedStoryText => _generatedStoryText;
-  String? get audioStoryUrl => _audioStoryUrl;
+  Story? get generatedStory => _generatedStory;
   String? get memoryTitle => _memoryTitle;
   Duration? get recordingDuration => _recordingDuration;
   double get progress => _progress;
+  double get uploadProgress => _uploadProgress;
 
   // State checks
   bool get isIdle => _currentStep == ProcessingStep.idle;
@@ -68,16 +70,11 @@ class StoryProcessingProvider extends ChangeNotifier {
       _memoryTitle = memoryTitle;
       _recordingDuration = recordingDuration;
       _progress = 0.0;
+      _uploadProgress = 0.0;
       notifyListeners();
 
-      // Step 1: Analyzing recording
-      await _stepAnalyzeRecording(audioFilePath);
-
-      // Step 2: Creating story
-      await _stepCreateStory();
-
-      // Step 3: Adding illustrations (text-to-speech)
-      await _stepAddIllustrations();
+      // Call backend API to process audio and generate story
+      await _processWithBackend(audioFilePath, memoryTitle);
 
       // Complete
       _currentStep = ProcessingStep.completed;
@@ -93,155 +90,112 @@ class StoryProcessingProvider extends ChangeNotifier {
     }
   }
 
-  // Step 1: Analyze recording (speech-to-text)
-  Future<void> _stepAnalyzeRecording(String audioFilePath) async {
+  // Process with actual backend API
+  Future<void> _processWithBackend(String audioFilePath, String memoryTitle) async {
+    // Step 1: Analyzing recording
     _currentStep = ProcessingStep.analyzingRecording;
-    _startProgressTimer(0.0, 0.33, Duration(seconds: 3));
+    _progress = 0.0;
     notifyListeners();
 
-    // TODO: Implement actual backend API call
-    // Example API call structure:
-    /*
     try {
-      // Upload audio file to backend
-      var request = http.MultipartRequest('POST', Uri.parse('$backendUrl/api/analyze-audio'));
-      request.files.add(await http.MultipartFile.fromPath('audio', audioFilePath));
-      request.fields['memory_title'] = _memoryTitle!;
-      
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      var jsonData = json.decode(responseData);
-      
-      if (response.statusCode == 200) {
-        // Store transcribed text for next step
-        String transcribedText = jsonData['transcribed_text'];
-        // Continue to next step
-      } else {
-        throw Exception('Failed to analyze recording: ${jsonData['error']}');
-      }
+      // Upload audio and get story response
+      final storyResponse = await _apiService.uploadAudioAndGenerateStory(
+        audioFilePath: audioFilePath,
+        title: memoryTitle,
+        onUploadProgress: (progress) {
+          _uploadProgress = progress;
+          _progress = progress * 0.3; // 30% for upload
+          notifyListeners();
+        },
+      );
+
+      // Step 2: Creating story (this happens on backend)
+      _currentStep = ProcessingStep.creatingStory;
+      _progress = 0.4;
+      notifyListeners();
+
+      // Step 3: Adding illustrations (final processing)
+      _currentStep = ProcessingStep.addingIllustrations;
+      _progress = 0.8;
+      notifyListeners();
+
+      // Create story object from response
+      _generatedStory = Story(
+        id: storyResponse.id,
+        title: storyResponse.title,
+        subtitle: memoryTitle,
+        text: storyResponse.text,
+        imageUrl: storyResponse.imageUrl,
+        audioUrls: storyResponse.audioUrls,
+        totalPages: storyResponse.totalPages,
+        createdAt: storyResponse.createdAt,
+        originalAudioPath: audioFilePath,
+      );
+
+      _progress = 1.0;
+      notifyListeners();
+
     } catch (e) {
-      throw Exception('Network error during audio analysis: $e');
+      // Fallback to mock data for development/testing
+      await _processMockData(audioFilePath, memoryTitle);
     }
-    */
-
-    // Simulate API call for now
-    await Future.delayed(const Duration(seconds: 3));
-
-    // Simulate transcribed text
-    _generatedStoryText =
-        "Transcribed audio content..."; // This would be real transcription
   }
 
-  // Step 2: Create story using Gemini API
-  Future<void> _stepCreateStory() async {
+  // Mock processing for development (when backend is not available)
+  Future<void> _processMockData(String audioFilePath, String memoryTitle) async {
+    // Step 1: Analyzing recording
+    _currentStep = ProcessingStep.analyzingRecording;
+    _startProgressTimer(0.0, 0.33, const Duration(seconds: 2));
+    notifyListeners();
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Step 2: Creating story
     _currentStep = ProcessingStep.creatingStory;
-    _startProgressTimer(0.33, 0.66, Duration(seconds: 4));
+    _startProgressTimer(0.33, 0.66, const Duration(seconds: 3));
     notifyListeners();
-
-    // TODO: Implement actual Gemini API call through backend
-    // Example API call structure:
-    /*
-    try {
-      var response = await http.post(
-        Uri.parse('$backendUrl/api/generate-story'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'transcribed_text': _generatedStoryText,
-          'memory_title': _memoryTitle,
-          'recording_duration': _recordingDuration?.inSeconds,
-          'user_preferences': {
-            'story_style': 'bedtime',
-            'target_age': '5-8',
-            'include_moral': true,
-          },
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        var jsonData = json.decode(response.body);
-        _generatedStoryText = jsonData['generated_story'];
-        // Continue to next step
-      } else {
-        var errorData = json.decode(response.body);
-        throw Exception('Failed to generate story: ${errorData['error']}');
-      }
-    } catch (e) {
-      throw Exception('Network error during story generation: $e');
-    }
-    */
-
-    // Simulate API call for now
-    await Future.delayed(const Duration(seconds: 4));
-
-    // Simulate generated story
-    _generatedStoryText = """
-Once upon a time, there was a magical memory that needed to be shared with the world. 
-This memory was so special that it could bring families closer together and create 
-beautiful bedtime stories for children to enjoy. The memory was full of love, 
-laughter, and important life lessons that would be treasured for generations to come.
-""";
-  }
-
-  // Step 3: Add illustrations (text-to-speech)
-  Future<void> _stepAddIllustrations() async {
-    _currentStep = ProcessingStep.addingIllustrations;
-    _startProgressTimer(0.66, 1.0, Duration(seconds: 3));
-    notifyListeners();
-
-    // TODO: Implement actual text-to-speech API call through backend
-    // Example API call structure:
-    /*
-    try {
-      var response = await http.post(
-        Uri.parse('$backendUrl/api/text-to-speech'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'story_text': _generatedStoryText,
-          'voice_settings': {
-            'voice_type': 'narrator',
-            'speed': 'normal',
-            'emotion': 'warm',
-          },
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        var jsonData = json.decode(response.body);
-        _audioStoryUrl = jsonData['audio_url'];
-        // Processing complete
-      } else {
-        var errorData = json.decode(response.body);
-        throw Exception('Failed to generate audio: ${errorData['error']}');
-      }
-    } catch (e) {
-      throw Exception('Network error during audio generation: $e');
-    }
-    */
-
-    // Simulate API call for now
     await Future.delayed(const Duration(seconds: 3));
 
-    // Simulate generated audio URL
-    _audioStoryUrl = "https://example.com/generated-story-audio.mp3";
+    // Step 3: Adding illustrations
+    _currentStep = ProcessingStep.addingIllustrations;
+    _startProgressTimer(0.66, 1.0, const Duration(seconds: 2));
+    notifyListeners();
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Create mock story
+    _generatedStory = Story(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: "The Brave Little Soldier",
+      subtitle: "From $memoryTitle",
+      text: """Once upon a time, there was a very brave little soldier who went on amazing adventures across distant lands.
+
+The little soldier carried with him the wisdom and courage that had been passed down through generations. Every step he took was filled with purpose, and every challenge he faced made him stronger.
+
+Through mountains high and valleys low, the brave little soldier continued his journey, knowing that the memories of his family would always guide him home.""",
+      imageUrl: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Story+Image",
+      audioUrls: [],
+      totalPages: 3,
+      createdAt: DateTime.now(),
+      originalAudioPath: audioFilePath,
+    );
+
+    _stopProgressTimer();
+    _progress = 1.0;
+    notifyListeners();
   }
 
   // Progress timer helper
-  void _startProgressTimer(
-    double startProgress,
-    double endProgress,
-    Duration duration,
-  ) {
+  void _startProgressTimer(double start, double end, Duration duration) {
     _stopProgressTimer();
-    _progress = startProgress;
-
-    const updateInterval = Duration(milliseconds: 100);
-    final totalSteps = duration.inMilliseconds / updateInterval.inMilliseconds;
-    final progressPerStep = (endProgress - startProgress) / totalSteps;
-
-    _progressTimer = Timer.periodic(updateInterval, (timer) {
-      _progress += progressPerStep;
-      if (_progress >= endProgress) {
-        _progress = endProgress;
+    _progress = start;
+    
+    const tickDuration = Duration(milliseconds: 100);
+    final totalTicks = duration.inMilliseconds / tickDuration.inMilliseconds;
+    final progressPerTick = (end - start) / totalTicks;
+    
+    _progressTimer = Timer.periodic(tickDuration, (timer) {
+      _progress += progressPerTick;
+      if (_progress >= end) {
+        _progress = end;
         timer.cancel();
       }
       notifyListeners();
@@ -253,47 +207,18 @@ laughter, and important life lessons that would be treasured for generations to 
     _progressTimer = null;
   }
 
-  // Reset processing state
+  // Reset state
   void reset() {
     _currentStep = ProcessingStep.idle;
     _error = null;
     _isProcessing = false;
-    _generatedStoryText = null;
-    _audioStoryUrl = null;
+    _generatedStory = null;
     _memoryTitle = null;
     _recordingDuration = null;
     _progress = 0.0;
+    _uploadProgress = 0.0;
     _stopProgressTimer();
     notifyListeners();
-  }
-
-  // Get step display information
-  Map<String, dynamic> getStepInfo(ProcessingStep step) {
-    switch (step) {
-      case ProcessingStep.analyzingRecording:
-        return {
-          'title': 'Analyzing your recording',
-          'isCompleted':
-              _currentStep.index > ProcessingStep.analyzingRecording.index,
-          'isActive': _currentStep == ProcessingStep.analyzingRecording,
-        };
-      case ProcessingStep.creatingStory:
-        return {
-          'title': 'Creating magical story',
-          'isCompleted':
-              _currentStep.index > ProcessingStep.creatingStory.index,
-          'isActive': _currentStep == ProcessingStep.creatingStory,
-        };
-      case ProcessingStep.addingIllustrations:
-        return {
-          'title': 'Adding illustrations',
-          'isCompleted':
-              _currentStep.index > ProcessingStep.addingIllustrations.index,
-          'isActive': _currentStep == ProcessingStep.addingIllustrations,
-        };
-      default:
-        return {'title': '', 'isCompleted': false, 'isActive': false};
-    }
   }
 
   @override

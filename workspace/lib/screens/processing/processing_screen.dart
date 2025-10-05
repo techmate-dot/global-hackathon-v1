@@ -90,7 +90,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<StoryProcessingProvider>();
       if (provider.isCompleted) {
-        _navigateToHome();
+        _navigateToStoryOrHome(provider);
       }
     });
   }
@@ -103,10 +103,14 @@ class _ProcessingScreenState extends State<ProcessingScreen>
     super.dispose();
   }
 
-  void _navigateToHome() {
+  void _navigateToStoryOrHome(StoryProcessingProvider provider) {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        context.goToHome();
+        if (provider.generatedStory != null) {
+          context.goToStoryView(provider.generatedStory!.id);
+        } else {
+          context.goToHome();
+        }
       }
     });
   }
@@ -117,10 +121,10 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       backgroundColor: _ProcessingConstants.backgroundColor,
       body: Consumer<StoryProcessingProvider>(
         builder: (context, provider, child) {
-          // Navigate to home when processing is complete
+          // Navigate to story view when processing is complete
           if (provider.isCompleted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _navigateToHome();
+              _navigateToStoryOrHome(provider);
             });
           }
 

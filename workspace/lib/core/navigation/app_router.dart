@@ -4,10 +4,11 @@ import '../../screens/onboarding/onboarding_screens.dart';
 import '../../screens/home/home_screen.dart';
 import '../../screens/recording/recording_screen.dart';
 import '../../screens/processing/processing_screen.dart';
-import '../../screens/story/story_view.dart';
+import '../../screens/story/story_view_screen.dart';
 import '../../screens/library/library_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/chat/chat_screen.dart';
+import '../../models/story.dart';
 
 class AppRouter {
   static const String onboarding = '/onboarding';
@@ -56,11 +57,20 @@ class AppRouter {
 
       // Story View
       GoRoute(
-        path: storyView,
+        path: '$storyView/:storyId',
         name: 'story',
         builder: (context, state) {
-          final memoryId = state.uri.queryParameters['memoryId'];
-          return StoryView(memoryId: memoryId);
+          final storyId = state.pathParameters['storyId'] ?? '';
+          // For now, we'll create a mock story. In a real app, you'd fetch from storage/provider
+          final story = Story(
+            id: storyId,
+            title: "Sample Story",
+            subtitle: "Generated Story",
+            text: "This is a sample story text that would be displayed.",
+            createdAt: DateTime.now(),
+            originalAudioPath: '',
+          );
+          return StoryViewScreen(story: story);
         },
       ),
 
@@ -140,8 +150,8 @@ extension AppNavigation on BuildContext {
     GoRouter.of(this).go('${AppRouter.processing}?memoryId=$memoryId');
   }
 
-  void goToStoryView(String memoryId) {
-    GoRouter.of(this).go('${AppRouter.storyView}?memoryId=$memoryId');
+  void goToStoryView(String storyId) {
+    GoRouter.of(this).go('${AppRouter.storyView}/$storyId');
   }
 
   // Navigation Flow Methods (matching PRD requirements)
