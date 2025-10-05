@@ -1,6 +1,67 @@
 import 'package:flutter/material.dart';
 import '../../core/navigation/app_router.dart';
-import '../../core/theme/design_tokens.dart';
+
+// Figma-derived design constants (rounded to 3 decimals where applicable)
+class _HSizes {
+  static const double headerHeight = 79.994; // ~80
+  static const double cardRadius = 14.0;
+  static const double memoryCardHeight = 105.25;
+  static const double memoryImageSize = 63.995; // ~64
+  static const double quickActionHeight = 177.245; // ~177
+  static const double chatCardHeight = 117.25; // ~117
+  static const double gap = 16.0; // between cards
+}
+
+class _HTypography {
+  static const TextStyle h1 = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: Color(0xFF1E2939),
+    letterSpacing: -0.45,
+    height: 28 / 20,
+  );
+  static const TextStyle subtitle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFF4A5565),
+    letterSpacing: -0.15,
+    height: 20 / 14,
+  );
+  static const TextStyle sectionTitle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: Color(0xFF1E2939),
+    letterSpacing: -0.44,
+    height: 28 / 18,
+  );
+  static const TextStyle cardTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF1E2939),
+    letterSpacing: -0.31,
+    height: 24 / 16,
+  );
+  static const TextStyle cardSubtitle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFF4A5565),
+    letterSpacing: -0.15,
+    height: 20 / 14,
+  );
+  static const TextStyle meta = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFF6A7282),
+    height: 16 / 12,
+  );
+  static const TextStyle viewAll = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF00A63E),
+    letterSpacing: -0.15,
+    height: 20 / 14,
+  );
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -8,40 +69,33 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: EchoesColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with greeting and profile
-              _buildHeader(context),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with Echoes logo and profile
+                  _buildHeader(context),
+                  const SizedBox(height: 32),
 
-              // Main content
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Quick Record Button
-                    _buildQuickRecordCard(context),
-                    const SizedBox(height: 24),
+                  // My Memories Section
+                  _buildMyMemoriesSection(context),
+                  const SizedBox(height: 32),
 
-                    // Daily Prompt
-                    _buildDailyPrompt(context),
-                    const SizedBox(height: 24),
-
-                    // Quick Actions
-                    _buildQuickActions(context),
-                    const SizedBox(height: 24),
-
-                    // Recent Memories or Empty State
-                    _buildRecentMemories(context),
-                  ],
-                ),
+                  // Quick Actions Section
+                  _buildQuickActionsSection(context),
+                  const SizedBox(height: 100), // Space for FAB
+                ],
               ),
-            ],
-          ),
+            ),
+
+            // Floating Action Button
+            _buildFloatingActionButton(context),
+          ],
         ),
       ),
     );
@@ -49,258 +103,248 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      height: _HSizes.headerHeight,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Good morning! 👋',
-                style: EchoesTypography.headlineMedium.copyWith(
-                  color: EchoesColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Ready to capture some memories?',
-                style: EchoesTypography.bodyMedium.copyWith(
-                  color: EchoesColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          GestureDetector(
-            onTap: () => context.goToProfile(),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: EchoesColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: EchoesColors.primary.withOpacity(0.2),
-                  width: 2,
-                ),
-              ),
-              child: const Icon(
-                Icons.person,
-                color: EchoesColors.primary,
-                size: 24,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickRecordCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [EchoesColors.primary, EchoesColors.primary.withOpacity(0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: EchoesColors.primary.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: const Icon(Icons.mic, color: Colors.white, size: 32),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Start Recording',
-            style: EchoesTypography.headlineSmall.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Capture a special moment',
-            style: EchoesTypography.bodyMedium.copyWith(
-              color: Colors.white.withOpacity(0.9),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => context.onStartRecording(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: EchoesColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Tap to Record',
-                style: EchoesTypography.buttonLarge.copyWith(
-                  color: EchoesColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDailyPrompt(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: EchoesColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: EchoesColors.accent.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          // Echoes Logo with Owl
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: EchoesColors.accent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.lightbulb_outline,
-                  color: EchoesColors.accent,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Today\'s Prompt',
-                style: EchoesTypography.headlineSmall.copyWith(
-                  color: EchoesColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Tell me about your favorite childhood hideout. What made it so special?',
-            style: EchoesTypography.bodyLarge.copyWith(
-              color: EchoesColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => context.onStartRecording(),
-                  icon: const Icon(Icons.mic_none, size: 18),
-                  label: const Text('Record Response'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: EchoesColors.accent,
-                    side: const BorderSide(color: EchoesColors.accent),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 10),
                     ),
-                  ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text('🦉', style: TextStyle(fontSize: 20)),
                 ),
               ),
               const SizedBox(width: 12),
-              IconButton(
-                onPressed: () {
-                  // TODO: Shuffle prompt
-                },
-                icon: const Icon(Icons.refresh),
-                style: IconButton.styleFrom(
-                  backgroundColor: EchoesColors.accent.withOpacity(0.1),
-                  foregroundColor: EchoesColors.accent,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Echoes', style: _HTypography.h1),
+                  const Text('AI Memory Keeper', style: _HTypography.subtitle),
+                ],
               ),
             ],
+          ),
+
+          // Profile Button
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              onPressed: () => context.goToProfile(),
+              icon: Icon(Icons.person, size: 16, color: Color(0xFF364153)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildMyMemoriesSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Quick Actions',
-          style: EchoesTypography.headlineSmall.copyWith(
-            color: EchoesColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: _buildActionCard(
-                context: context,
-                icon: Icons.library_books,
-                title: 'Story Library',
-                subtitle: 'Browse stories',
-                color: EchoesColors.secondary,
-                onTap: () => context.goToLibrary(),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildActionCard(
-                context: context,
-                icon: Icons.chat_bubble_outline,
-                title: 'Chat',
-                subtitle: 'Ask about memories',
-                color: EchoesColors.accent,
-                onTap: () => context.goToChat(),
+            const Text('My Memories', style: _HTypography.sectionTitle),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {},
+              child: Row(
+                children: const [
+                  Icon(Icons.arrow_forward, size: 16, color: Color(0xFF00A63E)),
+                  SizedBox(width: 4),
+                  Text('View All', style: _HTypography.viewAll),
+                ],
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        _buildMemoryCard(
+          context,
+          title: 'The Brave Little Soldier',
+          subtitle: 'Grandpa\'s War Stories',
+          date: '15/01/2024',
+        ),
+        const SizedBox(height: 16),
+        _buildMemoryCard(
+          context,
+          title: 'The Magic Kitchen',
+          subtitle: 'Grandma\'s Cooking Adventures',
+          date: '20/01/2024',
         ),
       ],
     );
   }
 
-  Widget _buildActionCard({
-    required BuildContext context,
-    required IconData icon,
+  Widget _buildMemoryCard(
+    BuildContext context, {
     required String title,
     required String subtitle,
-    required Color color,
+    required String date,
+  }) {
+    return SizedBox(
+      height: _HSizes.memoryCardHeight,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16.628, 16.628, 0.629, 0.629),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.7),
+          border: Border.all(
+            color: Colors.black.withOpacity(0.1),
+            width: 0.629,
+          ),
+          borderRadius: BorderRadius.circular(_HSizes.cardRadius),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: _HSizes.memoryImageSize,
+              height: _HSizes.memoryImageSize,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_HSizes.cardRadius),
+                color: Colors.grey[200],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(_HSizes.cardRadius),
+                child: const ColoredBox(
+                  color: Colors.white,
+                  child: Center(
+                    child: Text('📘', style: TextStyle(fontSize: 24)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: _HTypography.cardTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: _HTypography.cardSubtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF00C950),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(date, style: _HTypography.meta),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double totalWidth = constraints.maxWidth;
+        // width formula from figma: (totalWidth - gap) / 2
+        final double cardWidth = (totalWidth - _HSizes.gap) / 2;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Quick Actions', style: _HTypography.sectionTitle),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  height: _HSizes.quickActionHeight,
+                  child: _buildActionCard(
+                    context,
+                    title: 'New Recording',
+                    subtitle: 'Capture a new memory',
+                    icon: Icons.mic,
+                    backgroundColor: const Color(0xFF00C950),
+                    borderColor: const Color(0xFFB9F8CF),
+                    onTap: () => context.goToRecording(),
+                  ),
+                ),
+                const SizedBox(width: _HSizes.gap),
+                SizedBox(
+                  width: cardWidth,
+                  height: _HSizes.quickActionHeight,
+                  child: _buildActionCard(
+                    context,
+                    title: 'Story Library',
+                    subtitle: 'Browse all stories',
+                    icon: Icons.library_books,
+                    backgroundColor: const Color(0xFF2B7FFF),
+                    borderColor: const Color(0xFFBEDBFF),
+                    onTap: () => context.goToLibrary(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: _HSizes.chatCardHeight,
+              child: _buildChatCard(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color backgroundColor,
+    required Color borderColor,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -308,137 +352,125 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: EchoesColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2), width: 1),
+          color: backgroundColor.withOpacity(
+            0.12,
+          ), // Card background (subtle tint)
+          border: Border.all(color: borderColor, width: 0.629),
+          borderRadius: BorderRadius.circular(_HSizes.cardRadius),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
+          children: [
+            // Content column centered
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(icon, size: 24, color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: _HTypography.cardTitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: _HTypography.cardSubtitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.goToChat(),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24.627, 24.627, 24.627, 0.629),
+        decoration: BoxDecoration(
+          color: Color(0xFFF8F8FF), // Figma chat card background
+          border: Border.all(color: const Color(0xFFE9D4FF), width: 0.629),
+          borderRadius: BorderRadius.circular(_HSizes.cardRadius),
+        ),
+        child: Row(
           children: [
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFAD46FF),
+                borderRadius: BorderRadius.circular(24),
               ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: EchoesTypography.bodyLarge.copyWith(
-                color: EchoesColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: EchoesTypography.bodySmall.copyWith(
-                color: EchoesColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentMemories(BuildContext context) {
-    // For demo, showing empty state
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Recent Memories',
-              style: EchoesTypography.headlineSmall.copyWith(
-                color: EchoesColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: () => context.goToLibrary(),
-              child: Text(
-                'View All',
-                style: EchoesTypography.bodyMedium.copyWith(
-                  color: EchoesColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildEmptyState(context),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: EchoesColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: EchoesColors.textTertiary.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: EchoesColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: const Icon(
-              Icons.auto_stories_outlined,
-              size: 40,
-              color: EchoesColors.primary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'No memories yet',
-            style: EchoesTypography.headlineSmall.copyWith(
-              color: EchoesColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Start recording your first memory to see it here',
-            style: EchoesTypography.bodyMedium.copyWith(
-              color: EchoesColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => context.onStartRecording(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: EchoesColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(
-              'Create First Memory',
-              style: EchoesTypography.buttonMedium.copyWith(
+              child: const Icon(
+                Icons.chat_bubble_outline,
+                size: 24,
                 color: Colors.white,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Chat with Memories', style: _HTypography.cardTitle),
+                  SizedBox(height: 4),
+                  SizedBox(
+                    width: 206,
+                    child: Text(
+                      'Ask questions about your family stories',
+                      style: _HTypography.cardSubtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Text('🧠', style: TextStyle(fontSize: 24)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton(BuildContext context) {
+    return Positioned(
+      right: 24, // visually matches figma (approx 305.73 left for 394 width)
+      bottom: 24, // align with design proportionally
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Color(0xFF00C950),
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: IconButton(
+          onPressed: () => context.goToRecording(),
+          icon: Icon(Icons.add, size: 16, color: Colors.white),
+        ),
       ),
     );
   }

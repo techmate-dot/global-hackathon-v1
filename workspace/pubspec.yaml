@@ -80,6 +80,7 @@ flutter:
 
   # Assets
   assets:
-    - assets/images/
-    - assets/animations/
-    - assets/audio/
+  - assets/images/
+  - assets/animations/
+  - assets/audio/
+  - assets/onboarding/

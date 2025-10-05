@@ -243,24 +243,21 @@ class OnboardingCarouselPage extends StatelessWidget {
   // Data for each page
   static const List<Map<String, dynamic>> _pageData = [
     {
-      'imageUrl':
-          'https://www.figma.com/api/mcp/asset/c1dba9d6-722c-4dfa-8089-49562ed7b47c',
+      'imageUrl': 'assets/onboarding/onboarding_1.png',
       'title': 'Capture Family Stories',
       'description':
           'Record precious memories and stories from your loved ones with just a tap',
       'icon': Icons.family_restroom,
     },
     {
-      'imageUrl':
-          'https://www.figma.com/api/mcp/asset/be05547d-39e8-4368-9add-bf45ff491507',
+      'imageUrl': 'assets/onboarding/onboarding_2.png',
       'title': 'Transform into Bedtime Adventures',
       'description':
           'Our AI turns family memories into magical bedtime stories your kids will love',
       'icon': Icons.auto_stories,
     },
     {
-      'imageUrl':
-          'https://www.figma.com/api/mcp/asset/75e429d2-c122-4f3e-b923-0ac9b0aa2c1e',
+      'imageUrl': 'assets/onboarding/onboarding_3.png',
       'title': 'Preserve Memories Forever',
       'description':
           'Build a beautiful library of family stories that will be treasured for generations',
@@ -365,24 +362,11 @@ class OnboardingCarouselPage extends StatelessWidget {
               ),
             ),
 
-            // Network image
+            // Local asset image
             Positioned.fill(
-              child: Image.network(
+              child: Image.asset(
                 data['imageUrl'],
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    color: Colors.grey[100],
-                    child: Center(
-                      child: Icon(
-                        data['icon'],
-                        size: 80,
-                        color: const Color(0xFF00C950).withOpacity(0.3),
-                      ),
-                    ),
-                  );
-                },
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[100],
