@@ -91,9 +91,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
   Future<void> _initializeAudioPlayer() async {
     _audioPlayer = FlutterSoundPlayer();
     await _audioPlayer!.openPlayer();
-    
+
     _audioPlayer!.setSubscriptionDuration(const Duration(milliseconds: 100));
-    
+
     // Set up completion handler
     _audioPlayer!.onProgress!.listen((event) {
       if (event.position >= event.duration) {
@@ -140,9 +140,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
     try {
       // Check if we have a local audio file first
       String? audioPath;
-      
+
       // Check for page-specific audio URL
-      if (_currentStory.audioUrls.isNotEmpty && 
+      if (_currentStory.audioUrls.isNotEmpty &&
           _currentStory.currentPage <= _currentStory.audioUrls.length) {
         final audioUrl = _currentStory.audioUrls[_currentStory.currentPage - 1];
         if (audioUrl.isNotEmpty) {
@@ -150,7 +150,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
           audioPath = audioUrl;
         }
       }
-      
+
       // Fallback: Generate audio from backend if no pre-generated audio exists
       if (audioPath == null || audioPath.isEmpty) {
         audioPath = await _apiService.getStoryAudio(
@@ -165,7 +165,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
           fromURI: audioPath,
           codec: audioPath.startsWith('http') ? Codec.mp3 : Codec.aacADTS,
         );
-        
+
         setState(() {
           _isPlaying = true;
           _isPaused = false;
@@ -181,7 +181,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
         _isPlaying = false;
         _isPaused = false;
       });
-      
+
       // Show error to user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -243,15 +243,13 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
             children: [
               // Header
               _buildHeader(),
-              
+
               // Story content
-              Expanded(
-                child: _buildStoryContent(),
-              ),
-              
+              Expanded(child: _buildStoryContent()),
+
               // Page indicator
               _buildPageIndicator(),
-              
+
               const SizedBox(height: 16),
             ],
           ),
@@ -374,10 +372,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
       decoration: BoxDecoration(
         color: _StoryViewConstants.cardBackground.withOpacity(0.9),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: _StoryViewConstants.cardBorder,
-          width: 0.629,
-        ),
+        border: Border.all(color: _StoryViewConstants.cardBorder, width: 0.629),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -385,12 +380,10 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
           children: [
             // Story image
             _buildStoryImage(),
-            
+
             // Story text
-            Expanded(
-              child: _buildStoryText(),
-            ),
-            
+            Expanded(child: _buildStoryText()),
+
             // Navigation and read aloud controls
             _buildControls(),
           ],
@@ -411,24 +404,17 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: Colors.grey[200],
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported),
-                  ),
+                  child: const Center(child: Icon(Icons.image_not_supported)),
                 ),
               )
             : Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.blue[100]!,
-                      Colors.purple[100]!,
-                    ],
+                    colors: [Colors.blue[100]!, Colors.purple[100]!],
                   ),
                 ),
                 child: const Center(
@@ -471,16 +457,16 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                   width: 47.997,
                   height: 47.997,
                   decoration: BoxDecoration(
-                    color: _currentStory.currentPage > 1 
-                        ? Colors.grey[100] 
+                    color: _currentStory.currentPage > 1
+                        ? Colors.grey[100]
                         : Colors.grey[100]!.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.chevron_left,
                     size: 15.999,
-                    color: _currentStory.currentPage > 1 
-                        ? _StoryViewConstants.textPrimary 
+                    color: _currentStory.currentPage > 1
+                        ? _StoryViewConstants.textPrimary
                         : _StoryViewConstants.textSecondary,
                   ),
                 ),
@@ -491,30 +477,32 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
 
               // Next button
               GestureDetector(
-                onTap: _currentStory.currentPage < _currentStory.totalPages ? _nextPage : null,
+                onTap: _currentStory.currentPage < _currentStory.totalPages
+                    ? _nextPage
+                    : null,
                 child: Container(
                   width: 47.997,
                   height: 47.997,
                   decoration: BoxDecoration(
-                    color: _currentStory.currentPage < _currentStory.totalPages 
-                        ? Colors.grey[100] 
+                    color: _currentStory.currentPage < _currentStory.totalPages
+                        ? Colors.grey[100]
                         : Colors.grey[100]!.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.chevron_right,
                     size: 15.999,
-                    color: _currentStory.currentPage < _currentStory.totalPages 
-                        ? _StoryViewConstants.textPrimary 
+                    color: _currentStory.currentPage < _currentStory.totalPages
+                        ? _StoryViewConstants.textPrimary
                         : _StoryViewConstants.textSecondary,
                   ),
                 ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Read aloud button
           _buildReadAloudButton(),
         ],
@@ -532,8 +520,8 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
           height: 7.999,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isActive 
-                ? _StoryViewConstants.progressActive 
+            color: isActive
+                ? _StoryViewConstants.progressActive
                 : _StoryViewConstants.progressInactive,
             borderRadius: BorderRadius.circular(4),
           ),
@@ -575,15 +563,12 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Text(
-                  '🦉',
-                  style: TextStyle(fontSize: 18),
-                ),
+                child: Text('🦉', style: TextStyle(fontSize: 18)),
               ),
             ),
-            
+
             const SizedBox(width: 11.999),
-            
+
             // Text
             Expanded(
               child: Column(
@@ -591,19 +576,19 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _isLoading 
-                        ? 'Loading...' 
-                        : _isPlaying && !_isPaused 
-                            ? 'Playing...' 
-                            : 'Read Aloud',
+                    _isLoading
+                        ? 'Loading...'
+                        : _isPlaying && !_isPaused
+                        ? 'Playing...'
+                        : 'Read Aloud',
                     style: _StoryViewConstants.readAloudTitle,
                   ),
                   Text(
                     _isLoading
                         ? 'Preparing audio...'
-                        : _isPlaying && _isPaused 
-                            ? 'Tap to resume' 
-                            : 'Let Echo tell the story',
+                        : _isPlaying && _isPaused
+                        ? 'Tap to resume'
+                        : 'Let Echo tell the story',
                     style: _StoryViewConstants.readAloudSubtitle.copyWith(
                       color: Colors.white.withOpacity(0.9),
                     ),
@@ -611,9 +596,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(width: 11.999),
-            
+
             // Play/pause/loading icon
             _isLoading
                 ? const SizedBox(
@@ -625,9 +610,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                     ),
                   )
                 : Icon(
-                    _isPlaying && !_isPaused 
-                        ? Icons.pause 
-                        : Icons.play_arrow,
+                    _isPlaying && !_isPaused ? Icons.pause : Icons.play_arrow,
                     size: 15.999,
                     color: Colors.white,
                   ),

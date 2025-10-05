@@ -90,19 +90,19 @@ class Story {
     // Simple implementation - can be enhanced based on content
     const wordsPerPage = 50;
     final words = text.split(' ');
-    
+
     if (words.length <= wordsPerPage) {
       return [text];
     }
 
     final pages = <String>[];
     for (int i = 0; i < words.length; i += wordsPerPage) {
-      final endIndex = (i + wordsPerPage < words.length) 
-          ? i + wordsPerPage 
+      final endIndex = (i + wordsPerPage < words.length)
+          ? i + wordsPerPage
           : words.length;
       pages.add(words.sublist(i, endIndex).join(' '));
     }
-    
+
     return pages;
   }
 

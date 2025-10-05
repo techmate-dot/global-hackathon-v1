@@ -98,7 +98,7 @@ class _RecordingScreenState extends State<RecordingScreen>
   Duration _recordingDuration = Duration.zero;
   List<double> _waveformHeights = [];
   final TextEditingController _titleController = TextEditingController();
-  
+
   // Audio recording
   FlutterSoundRecorder? _recorder;
   String? _recordingPath;
@@ -122,7 +122,9 @@ class _RecordingScreenState extends State<RecordingScreen>
       if (!permission.isGranted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission is required for recording')),
+            const SnackBar(
+              content: Text('Microphone permission is required for recording'),
+            ),
           );
         }
         return;
@@ -131,7 +133,7 @@ class _RecordingScreenState extends State<RecordingScreen>
       // Initialize recorder
       _recorder = FlutterSoundRecorder();
       await _recorder!.openRecorder();
-      
+
       setState(() {
         _isInitialized = true;
       });
@@ -173,9 +175,9 @@ class _RecordingScreenState extends State<RecordingScreen>
 
   Future<void> _startRecording() async {
     if (!_isInitialized || _recorder == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recorder not initialized')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Recorder not initialized')));
       return;
     }
 
@@ -186,7 +188,7 @@ class _RecordingScreenState extends State<RecordingScreen>
       if (!await recordingsDir.exists()) {
         await recordingsDir.create(recursive: true);
       }
-      
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       _recordingPath = '${recordingsDir.path}/recording_$timestamp.aac';
 
@@ -215,9 +217,9 @@ class _RecordingScreenState extends State<RecordingScreen>
       });
     } catch (e) {
       print('Error starting recording: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to start recording: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to start recording: $e')));
     }
   }
 
@@ -233,7 +235,7 @@ class _RecordingScreenState extends State<RecordingScreen>
     try {
       // Stop the actual recording
       await _recorder!.stopRecorder();
-      
+
       setState(() {
         _isRecording = false;
         _isPaused = false;
@@ -246,9 +248,9 @@ class _RecordingScreenState extends State<RecordingScreen>
       _showSaveDialog();
     } catch (e) {
       print('Error stopping recording: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to stop recording: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to stop recording: $e')));
     }
   }
 
@@ -317,7 +319,9 @@ class _RecordingScreenState extends State<RecordingScreen>
                       // Recording tips card (only show when not recording)
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: !_isRecording ? _buildRecordingTipsCard() : const SizedBox.shrink(),
+                        child: !_isRecording
+                            ? _buildRecordingTipsCard()
+                            : const SizedBox.shrink(),
                       ),
 
                       const SizedBox(height: 16),

@@ -2,8 +2,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 class BackendApiService {
-  static const String baseUrl = 'https://your-backend-api.com/api'; // Replace with actual endpoint
-  
+  static const String baseUrl =
+      'https://your-backend-api.com/api'; // Replace with actual endpoint
+
   final Dio _dio = Dio();
 
   BackendApiService() {
@@ -77,7 +78,9 @@ class BackendApiService {
         await audioFile.writeAsBytes(response.data);
         return audioFile.path;
       } else {
-        throw ApiException('Audio generation failed with status: ${response.statusCode}');
+        throw ApiException(
+          'Audio generation failed with status: ${response.statusCode}',
+        );
       }
     } on DioException catch (e) {
       throw _handleDioError(e);

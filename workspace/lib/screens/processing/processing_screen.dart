@@ -15,7 +15,7 @@ class _ProcessingConstants {
   static const Color textTertiary = Color(0xFF364153);
   static const Color cardBackground = Color(0xFFFEFCE8);
   static const Color cardBorder = Color(0xFFFFF085);
-  
+
   // Typography
   static const TextStyle heroText = TextStyle(
     fontSize: 24,
@@ -75,12 +75,12 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat();
-    
+
     _owlBounceController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _progressController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -132,7 +132,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
             children: [
               // Background sparkles
               _buildBackgroundSparkles(),
-              
+
               // Main content
               SafeArea(
                 child: Padding(
@@ -140,30 +140,30 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                   child: Column(
                     children: [
                       const SizedBox(height: 80),
-                      
+
                       // Animated owl icon
                       _buildAnimatedOwl(),
-                      
+
                       const SizedBox(height: 40),
-                      
+
                       // Main title and description
                       _buildTitleSection(),
-                      
+
                       const SizedBox(height: 32),
-                      
+
                       // Animated progress dots
                       _buildProgressDots(),
-                      
+
                       const SizedBox(height: 48),
-                      
+
                       // Processing steps
                       _buildProcessingSteps(provider),
-                      
+
                       const Spacer(),
-                      
+
                       // Did you know card
                       _buildDidYouKnowCard(),
-                      
+
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -198,7 +198,9 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   }
 
   Widget _buildSparkle(double left, double top, double size, double opacity) {
-    final animatedOpacity = opacity * (0.5 + 0.5 * math.sin(_sparkleController.value * 2 * math.pi));
+    final animatedOpacity =
+        opacity *
+        (0.5 + 0.5 * math.sin(_sparkleController.value * 2 * math.pi));
     return Positioned(
       left: left,
       top: top,
@@ -239,13 +241,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Text(
-                  '🦉',
-                  style: TextStyle(
-                    fontSize: 48,
-                    height: 1.0,
-                  ),
-                ),
+                child: Text('🦉', style: TextStyle(fontSize: 48, height: 1.0)),
               ),
             ),
           ),
@@ -280,10 +276,11 @@ class _ProcessingScreenState extends State<ProcessingScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(3, (index) {
             final animationOffset = (index * 0.3) % 1.0;
-            final animatedValue = (_progressController.value + animationOffset) % 1.0;
+            final animatedValue =
+                (_progressController.value + animationOffset) % 1.0;
             final scale = 0.7 + 0.3 * math.sin(animatedValue * 2 * math.pi);
             final opacity = 0.7 + 0.3 * math.sin(animatedValue * 2 * math.pi);
-            
+
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 3.5),
               child: Transform.scale(
@@ -292,7 +289,9 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                   width: 17.694,
                   height: 17.694,
                   decoration: BoxDecoration(
-                    color: _ProcessingConstants.primaryGreen.withOpacity(opacity),
+                    color: _ProcessingConstants.primaryGreen.withOpacity(
+                      opacity,
+                    ),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -310,15 +309,21 @@ class _ProcessingScreenState extends State<ProcessingScreen>
         _buildStepItem(
           icon: '✓',
           title: 'Analyzing your recording',
-          isCompleted: provider.isAnalyzing || provider.isCreatingStory || 
-                       provider.isAddingIllustrations || provider.isCompleted,
+          isCompleted:
+              provider.isAnalyzing ||
+              provider.isCreatingStory ||
+              provider.isAddingIllustrations ||
+              provider.isCompleted,
           isActive: provider.isAnalyzing,
         ),
         const SizedBox(height: 12),
         _buildStepItem(
           icon: null,
           title: 'Creating magical story',
-          isCompleted: provider.isCreatingStory || provider.isAddingIllustrations || provider.isCompleted,
+          isCompleted:
+              provider.isCreatingStory ||
+              provider.isAddingIllustrations ||
+              provider.isCompleted,
           isActive: provider.isCreatingStory,
         ),
         const SizedBox(height: 12),
@@ -382,7 +387,9 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                   height: 10.57,
                   decoration: BoxDecoration(
                     color: _ProcessingConstants.primaryGreen.withOpacity(
-                      0.7 + 0.3 * math.sin(_progressController.value * 2 * math.pi)
+                      0.7 +
+                          0.3 *
+                              math.sin(_progressController.value * 2 * math.pi),
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -398,7 +405,9 @@ class _ProcessingScreenState extends State<ProcessingScreen>
           height: 24,
           decoration: BoxDecoration(
             border: Border.all(
-              color: isDisabled ? const Color(0xFFD1D5DC) : _ProcessingConstants.primaryGreen,
+              color: isDisabled
+                  ? const Color(0xFFD1D5DC)
+                  : _ProcessingConstants.primaryGreen,
               width: 1.887,
             ),
             shape: BoxShape.circle,
@@ -414,7 +423,9 @@ class _ProcessingScreenState extends State<ProcessingScreen>
         Text(
           title,
           style: _ProcessingConstants.stepText.copyWith(
-            color: isDisabled ? const Color(0xFF6A7282) : _ProcessingConstants.textTertiary,
+            color: isDisabled
+                ? const Color(0xFF6A7282)
+                : _ProcessingConstants.textTertiary,
           ),
         ),
       ],
@@ -439,19 +450,13 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text(
-            '✨',
-            style: TextStyle(fontSize: 24),
-          ),
+          const Text('✨', style: TextStyle(fontSize: 24)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text(
-                  'Did you know?',
-                  style: _ProcessingConstants.tipTitle,
-                ),
+                Text('Did you know?', style: _ProcessingConstants.tipTitle),
                 SizedBox(height: 2),
                 Text(
                   'Family stories help children develop empathy and understand their heritage',
