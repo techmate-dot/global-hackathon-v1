@@ -119,7 +119,7 @@ async def speech_to_text_with_story(file: UploadFile = File(...)):
         if audio_path:
               # Clean up temporary file
             os.remove(temp_file)
-            return FileResponse(audio_path, media_type="audio/wav", filename="story.mp3")
+            return {"audio" : FileResponse(audio_path, media_type="audio/wav", filename="story.mp3"), "transcript": transcript, "story": story}
         else:
             return {"error": "Text-to-speech conversion failed"}
       
