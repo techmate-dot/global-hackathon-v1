@@ -272,6 +272,7 @@ class _RecordingScreenState extends State<RecordingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // Prevent keyboard from pushing dialog
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

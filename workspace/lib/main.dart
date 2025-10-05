@@ -5,6 +5,7 @@ import 'core/navigation/app_router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/memory_provider.dart';
 import 'providers/record_provider.dart';
+import 'providers/story_processing_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ class EchoesApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MemoryProvider()),
         ChangeNotifierProvider(create: (_) => RecordProvider()),
+        ChangeNotifierProvider(create: (_) => StoryProcessingProvider()),
       ],
       child: MaterialApp.router(
         title: 'Echoes',
