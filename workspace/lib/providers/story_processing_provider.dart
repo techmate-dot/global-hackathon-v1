@@ -10,14 +10,14 @@ enum ProcessingStep {
   creatingStory,
   addingIllustrations,
   completed,
-  error
+  error,
 }
 
 class StoryProcessingProvider extends ChangeNotifier {
   ProcessingStep _currentStep = ProcessingStep.idle;
   String? _error;
   bool _isProcessing = false;
-  
+
   // Generated content
   String? _generatedStoryText;
   String? _audioStoryUrl;
@@ -42,7 +42,8 @@ class StoryProcessingProvider extends ChangeNotifier {
   bool get isIdle => _currentStep == ProcessingStep.idle;
   bool get isAnalyzing => _currentStep == ProcessingStep.analyzingRecording;
   bool get isCreatingStory => _currentStep == ProcessingStep.creatingStory;
-  bool get isAddingIllustrations => _currentStep == ProcessingStep.addingIllustrations;
+  bool get isAddingIllustrations =>
+      _currentStep == ProcessingStep.addingIllustrations;
   bool get isCompleted => _currentStep == ProcessingStep.completed;
   bool get hasError => _currentStep == ProcessingStep.error;
 
@@ -71,19 +72,18 @@ class StoryProcessingProvider extends ChangeNotifier {
 
       // Step 1: Analyzing recording
       await _stepAnalyzeRecording(audioFilePath);
-      
+
       // Step 2: Creating story
       await _stepCreateStory();
-      
+
       // Step 3: Adding illustrations (text-to-speech)
       await _stepAddIllustrations();
-      
+
       // Complete
       _currentStep = ProcessingStep.completed;
       _isProcessing = false;
       _progress = 1.0;
       notifyListeners();
-
     } catch (e) {
       _error = e.toString();
       _currentStep = ProcessingStep.error;
@@ -126,9 +126,10 @@ class StoryProcessingProvider extends ChangeNotifier {
 
     // Simulate API call for now
     await Future.delayed(const Duration(seconds: 3));
-    
+
     // Simulate transcribed text
-    _generatedStoryText = "Transcribed audio content..."; // This would be real transcription
+    _generatedStoryText =
+        "Transcribed audio content..."; // This would be real transcription
   }
 
   // Step 2: Create story using Gemini API
@@ -171,7 +172,7 @@ class StoryProcessingProvider extends ChangeNotifier {
 
     // Simulate API call for now
     await Future.delayed(const Duration(seconds: 4));
-    
+
     // Simulate generated story
     _generatedStoryText = """
 Once upon a time, there was a magical memory that needed to be shared with the world. 
@@ -219,20 +220,24 @@ laughter, and important life lessons that would be treasured for generations to 
 
     // Simulate API call for now
     await Future.delayed(const Duration(seconds: 3));
-    
+
     // Simulate generated audio URL
     _audioStoryUrl = "https://example.com/generated-story-audio.mp3";
   }
 
   // Progress timer helper
-  void _startProgressTimer(double startProgress, double endProgress, Duration duration) {
+  void _startProgressTimer(
+    double startProgress,
+    double endProgress,
+    Duration duration,
+  ) {
     _stopProgressTimer();
     _progress = startProgress;
-    
+
     const updateInterval = Duration(milliseconds: 100);
     final totalSteps = duration.inMilliseconds / updateInterval.inMilliseconds;
     final progressPerStep = (endProgress - startProgress) / totalSteps;
-    
+
     _progressTimer = Timer.periodic(updateInterval, (timer) {
       _progress += progressPerStep;
       if (_progress >= endProgress) {
@@ -268,27 +273,26 @@ laughter, and important life lessons that would be treasured for generations to 
       case ProcessingStep.analyzingRecording:
         return {
           'title': 'Analyzing your recording',
-          'isCompleted': _currentStep.index > ProcessingStep.analyzingRecording.index,
+          'isCompleted':
+              _currentStep.index > ProcessingStep.analyzingRecording.index,
           'isActive': _currentStep == ProcessingStep.analyzingRecording,
         };
       case ProcessingStep.creatingStory:
         return {
           'title': 'Creating magical story',
-          'isCompleted': _currentStep.index > ProcessingStep.creatingStory.index,
+          'isCompleted':
+              _currentStep.index > ProcessingStep.creatingStory.index,
           'isActive': _currentStep == ProcessingStep.creatingStory,
         };
       case ProcessingStep.addingIllustrations:
         return {
           'title': 'Adding illustrations',
-          'isCompleted': _currentStep.index > ProcessingStep.addingIllustrations.index,
+          'isCompleted':
+              _currentStep.index > ProcessingStep.addingIllustrations.index,
           'isActive': _currentStep == ProcessingStep.addingIllustrations,
         };
       default:
-        return {
-          'title': '',
-          'isCompleted': false,
-          'isActive': false,
-        };
+        return {'title': '', 'isCompleted': false, 'isActive': false};
     }
   }
 

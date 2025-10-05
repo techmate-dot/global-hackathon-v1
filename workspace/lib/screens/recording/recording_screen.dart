@@ -641,20 +641,22 @@ class _RecordingScreenState extends State<RecordingScreen>
                         child: TextButton(
                           onPressed: () async {
                             Navigator.of(context).pop();
-                            
+
                             // Get the story processing provider
-                            final storyProvider = context.read<StoryProcessingProvider>();
-                            
+                            final storyProvider = context
+                                .read<StoryProcessingProvider>();
+
                             // Start processing with the recording data
-                            final title = _titleController.text.trim().isEmpty 
-                                ? "My Memory" 
+                            final title = _titleController.text.trim().isEmpty
+                                ? "My Memory"
                                 : _titleController.text.trim();
-                            
-                                                        // Navigate to processing screen\n                            context.goToProcessing('temp_memory_id');
-                            
+
+                            // Navigate to processing screen\n                            context.goToProcessing('temp_memory_id');
+
                             // Start processing in background
                             await storyProvider.processRecording(
-                              audioFilePath: 'temp_recording_path.wav', // TODO: Use actual recording path
+                              audioFilePath:
+                                  'temp_recording_path.wav', // TODO: Use actual recording path
                               memoryTitle: title,
                               recordingDuration: _recordingDuration,
                             );
