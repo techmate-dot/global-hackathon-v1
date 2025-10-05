@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/navigation/app_router.dart';
+import '../../providers/story_processing_provider.dart';
 
 // Figma-derived design constants for recording screen
 class _RecordingConstants {
@@ -637,10 +639,25 @@ class _RecordingScreenState extends State<RecordingScreen>
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.of(context).pop();
-                            // Navigate to home after saving
-                            context.goToHome();
+                            
+                            // Get the story processing provider
+                            final storyProvider = context.read<StoryProcessingProvider>();
+                            
+                            // Start processing with the recording data
+                            final title = _titleController.text.trim().isEmpty 
+                                ? "My Memory" 
+                                : _titleController.text.trim();
+                            
+                                                        // Navigate to processing screen\n                            context.goToProcessing('temp_memory_id');
+                            
+                            // Start processing in background
+                            await storyProvider.processRecording(
+                              audioFilePath: 'temp_recording_path.wav', // TODO: Use actual recording path
+                              memoryTitle: title,
+                              recordingDuration: _recordingDuration,
+                            );
                           },
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.white,
