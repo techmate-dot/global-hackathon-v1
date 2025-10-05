@@ -91,23 +91,33 @@ class StoryProcessingProvider extends ChangeNotifier {
   }
 
   // Process with actual backend API
-  Future<void> _processWithBackend(String audioFilePath, String memoryTitle) async {
+  Future<void> _processWithBackend(
+    String audioFilePath,
+    String memoryTitle,
+  ) async {
     // Step 1: Analyzing recording
     _currentStep = ProcessingStep.analyzingRecording;
     _progress = 0.0;
     notifyListeners();
 
     try {
-      // Upload audio and get story response
-      final storyResponse = await _apiService.uploadAudioAndGenerateStory(
-        audioFilePath: audioFilePath,
-        title: memoryTitle,
-        onUploadProgress: (progress) {
-          _uploadProgress = progress;
-          _progress = progress * 0.3; // 30% for upload
-          notifyListeners();
-        },
-      );
+      // Add timeout to prevent infinite waiting
+      final storyResponse = await _apiService
+          .uploadAudioAndGenerateStory(
+            audioFilePath: audioFilePath,
+            title: memoryTitle,
+            onUploadProgress: (progress) {
+              _uploadProgress = progress;
+              _progress = progress * 0.3; // 30% for upload
+              notifyListeners();
+            },
+          )
+          .timeout(
+            const Duration(minutes: 3), // 3 minute timeout
+            onTimeout: () {
+              throw Exception('Request timed out. Please try again.');
+            },
+          );
 
       // Step 2: Creating story (this happens on backend)
       _currentStep = ProcessingStep.creatingStory;
@@ -134,15 +144,27 @@ class StoryProcessingProvider extends ChangeNotifier {
 
       _progress = 1.0;
       notifyListeners();
-
     } catch (e) {
+      print('Backend processing failed: $e');
       // Fallback to mock data for development/testing
-      await _processMockData(audioFilePath, memoryTitle);
+      try {
+        await _processMockData(audioFilePath, memoryTitle);
+      } catch (mockError) {
+        print('Mock processing also failed: $mockError');
+        _error = 'Processing failed: ${e.toString()}';
+        _currentStep = ProcessingStep.error;
+        _isProcessing = false;
+        _stopProgressTimer();
+        notifyListeners();
+      }
     }
   }
 
   // Mock processing for development (when backend is not available)
-  Future<void> _processMockData(String audioFilePath, String memoryTitle) async {
+  Future<void> _processMockData(
+    String audioFilePath,
+    String memoryTitle,
+  ) async {
     // Step 1: Analyzing recording
     _currentStep = ProcessingStep.analyzingRecording;
     _startProgressTimer(0.0, 0.33, const Duration(seconds: 2));
@@ -166,12 +188,14 @@ class StoryProcessingProvider extends ChangeNotifier {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: "The Brave Little Soldier",
       subtitle: "From $memoryTitle",
-      text: """Once upon a time, there was a very brave little soldier who went on amazing adventures across distant lands.
+      text:
+          """Once upon a time, there was a very brave little soldier who went on amazing adventures across distant lands.
 
 The little soldier carried with him the wisdom and courage that had been passed down through generations. Every step he took was filled with purpose, and every challenge he faced made him stronger.
 
 Through mountains high and valleys low, the brave little soldier continued his journey, knowing that the memories of his family would always guide him home.""",
-      imageUrl: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Story+Image",
+      imageUrl:
+          "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Story+Image",
       audioUrls: [],
       totalPages: 3,
       createdAt: DateTime.now(),
@@ -187,11 +211,11 @@ Through mountains high and valleys low, the brave little soldier continued his j
   void _startProgressTimer(double start, double end, Duration duration) {
     _stopProgressTimer();
     _progress = start;
-    
+
     const tickDuration = Duration(milliseconds: 100);
     final totalTicks = duration.inMilliseconds / tickDuration.inMilliseconds;
     final progressPerTick = (end - start) / totalTicks;
-    
+
     _progressTimer = Timer.periodic(tickDuration, (timer) {
       _progress += progressPerTick;
       if (_progress >= end) {

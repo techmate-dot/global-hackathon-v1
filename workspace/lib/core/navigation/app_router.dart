@@ -62,24 +62,25 @@ class AppRouter {
         name: 'story',
         builder: (context, state) {
           final storyId = state.pathParameters['storyId'] ?? '';
-          
+
           // Try to get the story from StoryProcessingProvider
-          final storyProvider = Provider.of<StoryProcessingProvider>(context, listen: false);
+          final storyProvider = Provider.of<StoryProcessingProvider>(
+            context,
+            listen: false,
+          );
           final story = storyProvider.generatedStory;
-          
+
           if (story != null && story.id == storyId) {
             return StoryViewScreen(story: story);
           }
-          
+
           // Fallback: redirect to home if no story found
           WidgetsBinding.instance.addPostFrameCallback((_) {
             context.goToHome();
           });
-          
+
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         },
       ),

@@ -99,7 +99,16 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
   /// Split the story text into pages like a children's book
   void _splitStoryIntoPages() {
     const int wordsPerPage = 25; // Adjust this to control page length
-    final words = _currentStory.text.split(' ');
+
+    // Clean and validate story text
+    String storyText = _currentStory.text.trim();
+    if (storyText.isEmpty) {
+      storyText =
+          'Once upon a time, there was a beautiful memory waiting to be told...';
+    }
+
+    final words = storyText.split(RegExp(r'\s+'));
+    words.removeWhere((word) => word.isEmpty);
 
     _storyPages.clear();
 
@@ -109,12 +118,14 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
           : words.length;
 
       final pageText = words.sublist(i, endIndex).join(' ');
-      _storyPages.add(pageText);
+      if (pageText.isNotEmpty) {
+        _storyPages.add(pageText);
+      }
     }
 
     // Ensure at least one page
     if (_storyPages.isEmpty) {
-      _storyPages.add(_currentStory.text);
+      _storyPages.add(storyText);
     }
   }
 
@@ -320,7 +331,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                   const SizedBox(height: 2),
                   Text(
                     _currentStory.subtitle,
-                    style: _StoryViewConstants.subtitleText.copyWith(fontSize: 12),
+                    style: _StoryViewConstants.subtitleText.copyWith(
+                      fontSize: 12,
+                    ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -524,8 +537,8 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                   _isLoading
                       ? 'Loading...'
                       : _isPlaying
-                          ? (_isPaused ? 'Resume' : 'Pause')
-                          : 'Read Aloud',
+                      ? (_isPaused ? 'Resume' : 'Pause')
+                      : 'Read Aloud',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,

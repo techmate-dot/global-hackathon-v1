@@ -11,6 +11,7 @@ class BackendApiService {
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 30);
     _dio.options.receiveTimeout = const Duration(seconds: 60);
+    _dio.options.sendTimeout = const Duration(seconds: 60);
   }
 
   /// Upload audio file and get generated story with audio
@@ -42,21 +43,45 @@ class BackendApiService {
 
       if (response.statusCode == 200) {
         final storyId = DateTime.now().millisecondsSinceEpoch.toString();
-        
-        // Extract story text from JSON response (API returns a string)
-        String storyText;
-        if (response.data is String) {
-          storyText = response.data as String;
-        } else {
-          // Fallback in case the response format is different
-          storyText = response.data.toString();
+
+        // Extract story text from JSON response
+        String storyText = '';
+
+        try {
+          if (response.data is String) {
+            storyText = response.data as String;
+            print(
+              'Received string response: ${storyText.substring(0, storyText.length > 100 ? 100 : storyText.length)}...',
+            );
+          } else if (response.data is Map) {
+            // Handle various possible response formats
+            final data = response.data as Map<String, dynamic>;
+            print('Received map response: ${data.keys}');
+            storyText =
+                data['story'] ??
+                data['text'] ??
+                data['content'] ??
+                data.toString();
+          } else {
+            print(
+              'Received unknown response type: ${response.data.runtimeType}',
+            );
+            storyText = response.data.toString();
+          }
+
+          // Clean up the story text - remove any JSON formatting or metadata
+          storyText = _cleanStoryText(storyText);
+          print('Cleaned story text length: ${storyText.length}');
+        } catch (e) {
+          print('Error parsing story response: $e');
+          storyText = _generatePlaceholderStory(title ?? 'My Memory');
         }
-        
-        // If story text is empty or too short, use a meaningful placeholder
+
+        // If story text is still empty or too short, use placeholder
         if (storyText.isEmpty || storyText.length < 50) {
           storyText = _generatePlaceholderStory(title ?? 'My Memory');
         }
-        
+
         return StoryResponse(
           id: storyId,
           title: title ?? 'My Memory',
@@ -73,6 +98,28 @@ class BackendApiService {
     } catch (e) {
       throw ApiException('Unexpected error: $e');
     }
+  }
+
+  /// Clean story text from backend response
+  String _cleanStoryText(String rawText) {
+    // Remove JSON quotes and escape characters
+    String cleaned = rawText
+        .replaceAll('\\"', '"')
+        .replaceAll('\\n', '\n')
+        .replaceAll('\\t', ' ');
+
+    // Remove leading/trailing quotes if present
+    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+
+    // Replace multiple whitespace with single space
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ');
+
+    // Trim whitespace
+    cleaned = cleaned.trim();
+
+    return cleaned;
   }
 
   /// Generate a meaningful placeholder story since backend doesn't return story text
@@ -93,7 +140,9 @@ And so the memory lives on, forever cherished, forever remembered, a treasure th
     const int wordsPerPage = 25;
     final words = text.split(' ');
     return (words.length / wordsPerPage).ceil();
-  }  /// Get story audio using text-to-speech
+  }
+
+  /// Get story audio using text-to-speech
   Future<String> getStoryAudio({
     required String storyId,
     required String text,
