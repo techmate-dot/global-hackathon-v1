@@ -122,14 +122,14 @@ async def speech_to_text_with_story(file: UploadFile = File(...)):
         transcript = response.results.channels[0].alternatives[0].transcript # type: ignore
 
         # Generate story
-        story = text_to_story(transcript, style="creative", length="medium")
+        story = text_to_story(transcript, style="creative", length="short")
 
         # Convert story to speech
         audio_path = text_to_speech_function(story, voice="aura-asteria-en", output_file="story_output.mp3")
         if audio_path:
               # Clean up temporary file
             os.remove(temp_file)
-            return FileResponse(audio_path, media_type="audio/wav", filename="story.mp3")
+            return {"audio" : FileResponse(audio_path, media_type="audio/wav", filename="story.mp3"), "transcript": transcript, "story": story}
         else:
             return {"error": "Text-to-speech conversion failed"}
       
