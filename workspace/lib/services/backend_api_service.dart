@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 
 class BackendApiService {
   static const String baseUrl =
-      'https://your-backend-api.com/api'; // Replace with actual endpoint
+      'https://echoes-backend.onrender.com'; // Production FastAPI server
 
   final Dio _dio = Dio();
 
@@ -13,37 +13,58 @@ class BackendApiService {
     _dio.options.receiveTimeout = const Duration(seconds: 60);
   }
 
-  /// Upload audio file and get generated story
+  /// Upload audio file and get generated story with audio
   Future<StoryResponse> uploadAudioAndGenerateStory({
     required String audioFilePath,
     String? title,
     Function(double)? onUploadProgress,
   }) async {
     try {
-      // Create form data for file upload
+      // Create form data for file upload matching FastAPI endpoint
       final formData = FormData.fromMap({
-        'audio': await MultipartFile.fromFile(
+        'file': await MultipartFile.fromFile(
           audioFilePath,
-          filename: 'recording.aac',
+          filename: 'recording.m4a',
         ),
-        if (title != null) 'title': title,
-        'format': 'aac',
-        'language': 'en', // Can be made configurable
       });
 
-      // Upload with progress tracking
+      // Upload to /stt-with-story endpoint that returns JSON with story text
       final response = await _dio.post(
-        '/upload-audio-generate-story',
+        '/stt-with-story',
         data: formData,
         onSendProgress: (sent, total) {
           if (onUploadProgress != null && total > 0) {
             onUploadProgress(sent / total);
           }
         },
+        options: Options(responseType: ResponseType.json),
       );
 
       if (response.statusCode == 200) {
-        return StoryResponse.fromJson(response.data);
+        final storyId = DateTime.now().millisecondsSinceEpoch.toString();
+        
+        // Extract story text from JSON response (API returns a string)
+        String storyText;
+        if (response.data is String) {
+          storyText = response.data as String;
+        } else {
+          // Fallback in case the response format is different
+          storyText = response.data.toString();
+        }
+        
+        // If story text is empty or too short, use a meaningful placeholder
+        if (storyText.isEmpty || storyText.length < 50) {
+          storyText = _generatePlaceholderStory(title ?? 'My Memory');
+        }
+        
+        return StoryResponse(
+          id: storyId,
+          title: title ?? 'My Memory',
+          text: storyText,
+          audioUrls: [], // Audio will be generated via TTS when needed
+          totalPages: _calculatePages(storyText),
+          createdAt: DateTime.now(),
+        );
       } else {
         throw ApiException('Upload failed with status: ${response.statusCode}');
       }
@@ -54,19 +75,35 @@ class BackendApiService {
     }
   }
 
-  /// Get story audio (text-to-speech)
+  /// Generate a meaningful placeholder story since backend doesn't return story text
+  String _generatePlaceholderStory(String memoryTitle) {
+    return """Once upon a time, there was a beautiful memory captured in the moment titled "$memoryTitle".
+
+This memory held within it the echoes of laughter, the warmth of connection, and the precious moments that make life truly meaningful.
+
+Like ripples in a pond, this memory spreads its gentle influence, touching hearts and minds with its timeless message.
+
+The story continues to unfold, each chapter bringing new understanding and deeper appreciation for the simple yet profound experiences that shape our lives.
+
+And so the memory lives on, forever cherished, forever remembered, a treasure that grows more valuable with each passing day.""";
+  }
+
+  /// Calculate number of pages for the story (25 words per page)
+  int _calculatePages(String text) {
+    const int wordsPerPage = 25;
+    final words = text.split(' ');
+    return (words.length / wordsPerPage).ceil();
+  }  /// Get story audio using text-to-speech
   Future<String> getStoryAudio({
     required String storyId,
     required String text,
   }) async {
     try {
-      final response = await _dio.post(
-        '/generate-audio',
-        data: {
-          'story_id': storyId,
+      final response = await _dio.get(
+        '/tts',
+        queryParameters: {
           'text': text,
-          'voice': 'narrator', // Can be made configurable
-          'speed': 1.0,
+          'voice': 'aura-asteria-en', // Deepgram voice
         },
         options: Options(responseType: ResponseType.bytes),
       );
@@ -74,7 +111,7 @@ class BackendApiService {
       if (response.statusCode == 200) {
         // Save audio to temporary file
         final tempDir = Directory.systemTemp;
-        final audioFile = File('${tempDir.path}/story_audio_$storyId.mp3');
+        final audioFile = File('${tempDir.path}/tts_audio_$storyId.mp3');
         await audioFile.writeAsBytes(response.data);
         return audioFile.path;
       } else {

@@ -9,11 +9,21 @@ import uuid
 
 app = FastAPI()
 
-# Load API key (you should put this in .env)
+# Load API keys from .env
 load_dotenv()
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
+GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
+
+# Initialize clients
 dg_client = DeepgramClient(api_key=DEEPGRAM_API_KEY)
-client = genai.Client()
+
+# Configure Gemini
+if GOOGLE_GEMINI_API_KEY:
+    genai.configure(api_key=GOOGLE_GEMINI_API_KEY)
+    client = genai.GenerativeModel('gemini-2.0-flash-exp')
+else:
+    print("Warning: Google Gemini API key not found. Story generation may fail.")
+    client = None
 
 def text_to_story(text, style="creative", length="medium"):
     """
@@ -49,11 +59,11 @@ def text_to_story(text, style="creative", length="medium"):
     narrative elements like characters, dialogue, setting, and plot development where appropriate.
     """
     
+    if not client:
+        raise Exception("Google Gemini API not configured")
+    
     # Generate the story
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    response = client.generate_content(prompt)
     
     return response.text
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/story_processing_provider.dart';
 import '../../screens/onboarding/onboarding_screens.dart';
 import '../../screens/home/home_screen.dart';
 import '../../screens/recording/recording_screen.dart';
@@ -8,7 +10,6 @@ import '../../screens/story/story_view_screen.dart';
 import '../../screens/library/library_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/chat/chat_screen.dart';
-import '../../models/story.dart';
 
 class AppRouter {
   static const String onboarding = '/onboarding';
@@ -61,16 +62,25 @@ class AppRouter {
         name: 'story',
         builder: (context, state) {
           final storyId = state.pathParameters['storyId'] ?? '';
-          // For now, we'll create a mock story. In a real app, you'd fetch from storage/provider
-          final story = Story(
-            id: storyId,
-            title: "Sample Story",
-            subtitle: "Generated Story",
-            text: "This is a sample story text that would be displayed.",
-            createdAt: DateTime.now(),
-            originalAudioPath: '',
+          
+          // Try to get the story from StoryProcessingProvider
+          final storyProvider = Provider.of<StoryProcessingProvider>(context, listen: false);
+          final story = storyProvider.generatedStory;
+          
+          if (story != null && story.id == storyId) {
+            return StoryViewScreen(story: story);
+          }
+          
+          // Fallback: redirect to home if no story found
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.goToHome();
+          });
+          
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
           );
-          return StoryViewScreen(story: story);
         },
       ),
 

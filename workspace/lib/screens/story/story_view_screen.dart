@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/story.dart';
 import '../../services/backend_api_service.dart';
 
@@ -48,6 +49,7 @@ class _StoryViewConstants {
     letterSpacing: -0.1504,
     height: 20 / 14,
   );
+  // Read aloud button text styles
   static const TextStyle readAloudTitle = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w500,
@@ -75,6 +77,10 @@ class StoryViewScreen extends StatefulWidget {
 
 class _StoryViewScreenState extends State<StoryViewScreen> {
   late Story _currentStory;
+  PageController _pageController = PageController();
+  List<String> _storyPages = [];
+  int _currentPage = 0;
+
   FlutterSoundPlayer? _audioPlayer;
   bool _isPlaying = false;
   bool _isPaused = false;
@@ -85,7 +91,31 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
   void initState() {
     super.initState();
     _currentStory = widget.story;
+    _pageController = PageController();
+    _splitStoryIntoPages();
     _initializeAudioPlayer();
+  }
+
+  /// Split the story text into pages like a children's book
+  void _splitStoryIntoPages() {
+    const int wordsPerPage = 25; // Adjust this to control page length
+    final words = _currentStory.text.split(' ');
+
+    _storyPages.clear();
+
+    for (int i = 0; i < words.length; i += wordsPerPage) {
+      final endIndex = (i + wordsPerPage < words.length)
+          ? i + wordsPerPage
+          : words.length;
+
+      final pageText = words.sublist(i, endIndex).join(' ');
+      _storyPages.add(pageText);
+    }
+
+    // Ensure at least one page
+    if (_storyPages.isEmpty) {
+      _storyPages.add(_currentStory.text);
+    }
   }
 
   Future<void> _initializeAudioPlayer() async {
@@ -153,9 +183,14 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
 
       // Fallback: Generate audio from backend if no pre-generated audio exists
       if (audioPath == null || audioPath.isEmpty) {
+        final currentPageText =
+            _storyPages.isNotEmpty && _currentPage < _storyPages.length
+            ? _storyPages[_currentPage]
+            : _currentStory.text;
+
         audioPath = await _apiService.getStoryAudio(
           storyId: _currentStory.id,
-          text: _currentStory.currentPageText,
+          text: currentPageText,
         );
       }
 
@@ -194,36 +229,6 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
     }
   }
 
-  void _previousPage() {
-    if (_currentStory.currentPage > 1) {
-      setState(() {
-        _currentStory = _currentStory.copyWith(
-          currentPage: _currentStory.currentPage - 1,
-        );
-      });
-      _stopAudio();
-    }
-  }
-
-  void _nextPage() {
-    if (_currentStory.currentPage < _currentStory.totalPages) {
-      setState(() {
-        _currentStory = _currentStory.copyWith(
-          currentPage: _currentStory.currentPage + 1,
-        );
-      });
-      _stopAudio();
-    }
-  }
-
-  Future<void> _stopAudio() async {
-    await _audioPlayer?.stopPlayer();
-    setState(() {
-      _isPlaying = false;
-      _isPaused = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -247,8 +252,14 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
               // Story content
               Expanded(child: _buildStoryContent()),
 
-              // Page indicator
+              // Page controls (navigation arrows)
+              _buildPageControls(),
+
+              // Page indicator dots
               _buildPageIndicator(),
+
+              // Read aloud button
+              _buildReadAloudButton(),
 
               const SizedBox(height: 16),
             ],
@@ -260,16 +271,19 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
 
   Widget _buildHeader() {
     return Container(
-      height: 95.993,
-      padding: const EdgeInsets.symmetric(horizontal: 15.999),
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           // Back button
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () {
+              // Use go_router navigation to go back to home
+              context.go('/home');
+            },
             child: Container(
-              width: 47.997,
-              height: 47.997,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: _StoryViewConstants.buttonBackground,
                 shape: BoxShape.circle,
@@ -283,7 +297,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
               ),
               child: const Icon(
                 Icons.arrow_back,
-                size: 15.999,
+                size: 14,
                 color: _StoryViewConstants.textPrimary,
               ),
             ),
@@ -292,14 +306,13 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
           // Title section
           Expanded(
             child: Container(
-              height: 43.997,
-              margin: const EdgeInsets.symmetric(horizontal: 20),
+              margin: const EdgeInsets.symmetric(horizontal: 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     _currentStory.title,
-                    style: _StoryViewConstants.titleText,
+                    style: _StoryViewConstants.titleText.copyWith(fontSize: 14),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -307,7 +320,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                   const SizedBox(height: 2),
                   Text(
                     _currentStory.subtitle,
-                    style: _StoryViewConstants.subtitleText,
+                    style: _StoryViewConstants.subtitleText.copyWith(fontSize: 12),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -326,20 +339,20 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                   // TODO: Implement share functionality
                 },
                 child: Container(
-                  width: 39.997,
-                  height: 39.997,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: _StoryViewConstants.buttonBackground,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.share,
-                    size: 15.999,
+                    size: 14,
                     color: _StoryViewConstants.textPrimary,
                   ),
                 ),
               ),
-              const SizedBox(width: 7.999),
+              const SizedBox(width: 6),
               // More options button
               GestureDetector(
                 onTap: () {
@@ -354,7 +367,7 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
                   ),
                   child: const Icon(
                     Icons.more_vert,
-                    size: 15.999,
+                    size: 14,
                     color: _StoryViewConstants.textPrimary,
                   ),
                 ),
@@ -376,20 +389,173 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Column(
-          children: [
-            // Story image
-            _buildStoryImage(),
-
-            // Story text
-            Expanded(child: _buildStoryText()),
-
-            // Navigation and read aloud controls
-            _buildControls(),
-          ],
+        child: PageView.builder(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentPage = index;
+            });
+          },
+          itemCount: _storyPages.length,
+          itemBuilder: (context, index) {
+            return _buildStoryPage(index);
+          },
         ),
       ),
     );
+  }
+
+  Widget _buildStoryPage(int pageIndex) {
+    return Column(
+      children: [
+        // Story image (same for all pages)
+        _buildStoryImage(),
+
+        // Page-specific text content
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Center(
+              child: Text(
+                _storyPages[pageIndex],
+                style: _StoryViewConstants.storyText,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPageControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Previous button
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _currentPage > 0
+                  ? _StoryViewConstants.buttonBackground
+                  : _StoryViewConstants.buttonBackground.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              onPressed: _currentPage > 0 ? _previousPage : null,
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                size: 14,
+                color: _currentPage > 0
+                    ? _StoryViewConstants.textPrimary
+                    : _StoryViewConstants.textSecondary,
+              ),
+            ),
+          ),
+
+          // Page info
+          Text(
+            'Page ${_currentPage + 1} of ${_storyPages.length}',
+            style: _StoryViewConstants.pageText,
+          ),
+
+          // Next button
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _currentPage < _storyPages.length - 1
+                  ? _StoryViewConstants.buttonBackground
+                  : _StoryViewConstants.buttonBackground.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              onPressed: _currentPage < _storyPages.length - 1
+                  ? _nextPage
+                  : null,
+              icon: Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: _currentPage < _storyPages.length - 1
+                    ? _StoryViewConstants.textPrimary
+                    : _StoryViewConstants.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReadAloudButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      height: 48,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            _StoryViewConstants.readAloudGradientStart,
+            _StoryViewConstants.readAloudGradientEnd,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: _toggleReadAloud,
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _isPlaying
+                      ? (_isPaused ? Icons.play_arrow : Icons.pause)
+                      : Icons.volume_up,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _isLoading
+                      ? 'Loading...'
+                      : _isPlaying
+                          ? (_isPaused ? 'Resume' : 'Pause')
+                          : 'Read Aloud',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _nextPage() {
+    if (_currentPage < _storyPages.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Widget _buildStoryImage() {
@@ -429,200 +595,9 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
     );
   }
 
-  Widget _buildStoryText() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Text(
-        _currentStory.currentPageText,
-        style: _StoryViewConstants.storyText,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildControls() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          // Navigation controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Previous button
-              GestureDetector(
-                onTap: _currentStory.currentPage > 1 ? _previousPage : null,
-                child: Container(
-                  width: 47.997,
-                  height: 47.997,
-                  decoration: BoxDecoration(
-                    color: _currentStory.currentPage > 1
-                        ? Colors.grey[100]
-                        : Colors.grey[100]!.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.chevron_left,
-                    size: 15.999,
-                    color: _currentStory.currentPage > 1
-                        ? _StoryViewConstants.textPrimary
-                        : _StoryViewConstants.textSecondary,
-                  ),
-                ),
-              ),
-
-              // Page dots
-              _buildPageDots(),
-
-              // Next button
-              GestureDetector(
-                onTap: _currentStory.currentPage < _currentStory.totalPages
-                    ? _nextPage
-                    : null,
-                child: Container(
-                  width: 47.997,
-                  height: 47.997,
-                  decoration: BoxDecoration(
-                    color: _currentStory.currentPage < _currentStory.totalPages
-                        ? Colors.grey[100]
-                        : Colors.grey[100]!.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.chevron_right,
-                    size: 15.999,
-                    color: _currentStory.currentPage < _currentStory.totalPages
-                        ? _StoryViewConstants.textPrimary
-                        : _StoryViewConstants.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Read aloud button
-          _buildReadAloudButton(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPageDots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_currentStory.totalPages, (index) {
-        final isActive = index + 1 == _currentStory.currentPage;
-        return Container(
-          width: isActive ? 23.998 : 7.999,
-          height: 7.999,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: isActive
-                ? _StoryViewConstants.progressActive
-                : _StoryViewConstants.progressInactive,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildReadAloudButton() {
-    return GestureDetector(
-      onTap: _toggleReadAloud,
-      child: Container(
-        height: 55.996,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              _StoryViewConstants.readAloudGradientStart,
-              _StoryViewConstants.readAloudGradientEnd,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Owl icon
-            Container(
-              width: 39.997,
-              height: 39.997,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text('🦉', style: TextStyle(fontSize: 18)),
-              ),
-            ),
-
-            const SizedBox(width: 11.999),
-
-            // Text
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _isLoading
-                        ? 'Loading...'
-                        : _isPlaying && !_isPaused
-                        ? 'Playing...'
-                        : 'Read Aloud',
-                    style: _StoryViewConstants.readAloudTitle,
-                  ),
-                  Text(
-                    _isLoading
-                        ? 'Preparing audio...'
-                        : _isPlaying && _isPaused
-                        ? 'Tap to resume'
-                        : 'Let Echo tell the story',
-                    style: _StoryViewConstants.readAloudSubtitle.copyWith(
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 11.999),
-
-            // Play/pause/loading icon
-            _isLoading
-                ? const SizedBox(
-                    width: 15.999,
-                    height: 15.999,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Icon(
-                    _isPlaying && !_isPaused ? Icons.pause : Icons.play_arrow,
-                    size: 15.999,
-                    color: Colors.white,
-                  ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildPageIndicator() {
     return Text(
-      'Page ${_currentStory.currentPage} of ${_currentStory.totalPages}',
+      'Page ${_currentPage + 1} of ${_storyPages.length}',
       style: _StoryViewConstants.pageText,
       textAlign: TextAlign.center,
     );

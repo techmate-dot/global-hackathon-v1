@@ -135,16 +135,16 @@ class _ProcessingScreenState extends State<ProcessingScreen>
 
               // Main content
               SafeArea(
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
-                      const SizedBox(height: 80),
+                      const SizedBox(height: 60),
 
                       // Animated owl icon
                       _buildAnimatedOwl(),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 30),
 
                       // Main title and description
                       _buildTitleSection(),
