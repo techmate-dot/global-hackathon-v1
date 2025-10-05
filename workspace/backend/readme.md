@@ -1,60 +1,72 @@
-# Speech-to-Text & Text-to-Speech API
+# Speech-to-Text Story Generator API
 
-A FastAPI-based REST API that provides speech-to-text (STT) and text-to-speech (TTS) capabilities using Deepgram's AI models.
+A FastAPI application that converts speech to text, generates creative stories using AI, and converts those stories back to speech.
 
 ## Features
 
-- 🎤 **Speech-to-Text**: Convert audio files to text transcriptions
-- 🔊 **Text-to-Speech**: Generate natural-sounding speech from text
-- ⚡ **Fast & Accurate**: Powered by Deepgram's Nova-3 model
-- 🚀 **Easy to Use**: Simple REST API endpoints
+- **Speech-to-Text**: Transcribe audio files using Deepgram's Nova-3 model
+- **AI Story Generation**: Transform text into creative stories using Google's Gemini AI
+- **Text-to-Speech**: Convert text/stories to natural-sounding audio using Deepgram TTS
+- **Complete Pipeline**: Upload audio → Get transcript → Generate story → Receive audio story
+
+---
 
 ## Prerequisites
 
-- Python 3.10 or higher
-- Deepgram API key ([Get one free](https://console.deepgram.com/signup))
+- Python 3.8 or higher
+- Deepgram API Key
+- Google Gemini API Key
+
+---
 
 ## Installation
 
-1. **Clone the repository**
+### 1. Clone or Download the Project
+
 ```bash
+# If using git
 git clone <your-repo-url>
-cd <your-repo-name>
+cd <project-folder>
 ```
 
-2. **Install dependencies**
+### 2. Install Dependencies
+
 ```bash
-pip install fastapi uvicorn deepgram-sdk python-dotenv python-multipart
+pip install fastapi uvicorn deepgram-sdk google-generativeai python-dotenv python-multipart
 ```
 
-3. **Set up environment variables**
+### 3. Set Up Environment Variables
 
 Create a `.env` file in the project root:
+
 ```env
-DEEPGRAM_API_KEY=your_api_key_here
+DEEPGRAM_API_KEY=your_deepgram_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-## Usage
+**How to get API keys:**
 
-### Start the Server
+- **Deepgram**: Sign up at [https://deepgram.com](https://deepgram.com) and get your API key from the dashboard
+- **Gemini**: Get your key from [https://ai.google.dev](https://ai.google.dev)
+
+### 4. Run the Server
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at: `http://localhost:8000`
 
-### API Documentation
-
-Once the server is running, visit:
-- **Interactive docs**: http://localhost:8000/docs
-- **Alternative docs**: http://localhost:8000/redoc
+---
 
 ## API Endpoints
 
-### 1. Health Check
-```http
-GET /
+### 1. **Root Endpoint** - Check if API is running
+
+**GET** `/`
+
+```bash
+curl http://localhost:8000/
 ```
 
 **Response:**
@@ -64,67 +76,31 @@ GET /
 }
 ```
 
-### 2. Speech-to-Text (STT)
+---
 
-Convert audio files to text.
+### 2. **Text-to-Speech** - Convert text to audio
 
-```http
-POST /stt
-```
+**GET** `/tts`
 
 **Parameters:**
-- `file` (form-data): Audio file (WAV, MP3, etc.)
+- `text` (required): Text to convert to speech
+- `voice` (optional): Voice model (default: "aura-asteria-en")
 
-**Example using cURL:**
+**Example:**
+
 ```bash
-curl -X POST "http://localhost:8000/stt" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@audio.wav"
+curl "http://localhost:8000/tts?text=Hello%20World&voice=aura-asteria-en" --output speech.mp3
 ```
 
-**Response:**
-```json
-{
-  "transcript": "Hello, this is a sample transcription."
-}
-```
+**Using Python:**
 
-**Supported Audio Formats:**
-- WAV
-- MP3
-- FLAC
-- OGG
-- And more...
-
-### 3. Text-to-Speech (TTS)
-
-Generate speech audio from text.
-
-```http
-GET /tts?text=Your+text+here&voice=aura-asteria-en
-```
-
-**Parameters:**
-- `text` (query, required): Text to convert to speech
-- `voice` (query, optional): Voice model to use
-  - Default: `aura-asteria-en`
-  - Options: See [Deepgram voices](https://developers.deepgram.com/docs/tts-models)
-
-**Example using cURL:**
-```bash
-curl -X GET "http://localhost:8000/tts?text=Hello%20world&voice=aura-asteria-en" \
-  --output speech.wav
-```
-
-**Example using Python:**
 ```python
 import requests
 
 response = requests.get(
     "http://localhost:8000/tts",
     params={
-        "text": "Hello, this is a test",
+        "text": "Hello! This is a test of text to speech.",
         "voice": "aura-asteria-en"
     }
 )
@@ -133,99 +109,200 @@ with open("output.mp3", "wb") as f:
     f.write(response.content)
 ```
 
-**Available Voices:**
-- `aura-asteria-en` (Default - Friendly female)
-- `aura-luna-en` (Warm female)
-- `aura-stella-en` (Professional female)
-- `aura-athena-en` (Confident female)
-- `aura-hera-en` (Authoritative female)
-- `aura-orion-en` (Deep male)
-- `aura-arcas-en` (Natural male)
-- `aura-perseus-en` (Strong male)
-- `aura-angus-en` (Friendly male)
-- `aura-orpheus-en` (Smooth male)
-- `aura-helios-en` (Energetic male)
-- `aura-zeus-en` (Commanding male)
+---
+
+### 3. **Speech-to-Text with Story** - Complete Pipeline
+
+**POST** `/stt-with-story`
+
+Uploads an audio file, transcribes it, generates a creative story, and returns the story as audio.
+
+**Parameters:**
+- `file` (required): Audio file (MP3, WAV, M4A, etc.)
+
+**Example using cURL:**
+
+```bash
+curl -X POST "http://localhost:8000/stt-with-story" \
+  -F "file=@your_audio_file.mp3" \
+  --output response.json
+```
+
+**Using Python:**
+
+```python
+import requests
+
+# Upload audio file
+with open("recording.mp3", "rb") as audio_file:
+    files = {"file": audio_file}
+    response = requests.post(
+        "http://localhost:8000/stt-with-story",
+        files=files
+    )
+    
+    result = response.json()
+    print("Transcript:", result["transcript"])
+    print("Story:", result["story"])
+    
+    # The audio file is saved as "story_output.mp3" on the server
+```
+
+**Using Postman:**
+1. Set method to `POST`
+2. URL: `http://localhost:8000/stt-with-story`
+3. Go to "Body" tab
+4. Select "form-data"
+5. Add key: `file`, type: `File`
+6. Upload your audio file
+7. Click "Send"
+
+**Response:**
+
+```json
+{
+  "audio": "<FileResponse object>",
+  "transcript": "Your transcribed speech here",
+  "story": "Once upon a time... [generated creative story]"
+}
+```
+
+---
+
+## Story Customization
+
+The `text_to_story` function supports customization:
+
+**Style options:**
+- `creative` (default)
+- `dramatic`
+- `humorous`
+- `mysterious`
+
+**Length options:**
+- `short` (150-200 words)
+- `medium` (300-400 words, default)
+- `long` (600-800 words)
+
+To customize, modify the function call in the code:
+
+```python
+story = text_to_story(transcript, style="mysterious", length="long")
+```
+
+---
+
+## Voice Options (Deepgram TTS)
+
+Available voices include:
+- `aura-asteria-en` (default - female, expressive)
+- `aura-luna-en` (female, warm)
+- `aura-stella-en` (female, professional)
+- `aura-athena-en` (female, confident)
+- `aura-hera-en` (female, authoritative)
+- `aura-orion-en` (male, deep)
+- `aura-arcas-en` (male, casual)
+- `aura-perseus-en` (male, professional)
+- `aura-angus-en` (male, narrative)
+- `aura-orpheus-en` (male, storytelling)
+- `aura-helios-en` (male, energetic)
+- `aura-zeus-en` (male, commanding)
+
+---
+
+## Troubleshooting
+
+### Error: "DEEPGRAM_API_KEY not found"
+- Make sure you created the `.env` file
+- Check that the API key is correctly set
+- Restart the server after adding the `.env` file
+
+### Error: "Module not found"
+```bash
+pip install fastapi uvicorn deepgram-sdk google-generativeai python-dotenv python-multipart
+```
+
+### Audio file not uploading
+- Check file format (MP3, WAV, M4A are supported)
+- Ensure file size is reasonable (under 25MB recommended)
+- Check server logs for detailed error messages
+
+### Server not starting
+```bash
+# Make sure no other app is using port 8000
+uvicorn main:app --reload --port 8001
+```
+
+---
+
+## Example Workflow
+
+1. **Record or prepare an audio file** with some content (e.g., "I love exploring new places and trying different foods")
+
+2. **Upload to the API:**
+```python
+import requests
+
+with open("my_recording.mp3", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/stt-with-story",
+        files={"file": f}
+    )
+    
+data = response.json()
+print("Original:", data["transcript"])
+print("\nStory:", data["story"])
+```
+
+3. **The API will:**
+   - Transcribe your audio
+   - Generate a creative story based on the transcription
+   - Convert the story to speech
+   - Return everything in the response
+
+4. **Download the audio story** (saved as `story_output.mp3` on the server)
+
+---
 
 ## Project Structure
 
 ```
-.
-├── main.py           # FastAPI application
-├── .env              # Environment variables (create this)
-├── .gitignore        # Git ignore file
-├── requirements.txt  # Python dependencies
-└── README.md         # This file
+project/
+├── main.py              # Main FastAPI application
+├── .env                 # Environment variables (API keys)
+├── README.md            # This file
+├── temp_*               # Temporary uploaded audio files (auto-deleted)
+├── output.mp3           # TTS output from /tts endpoint
+└── story_output.mp3     # Story audio from /stt-with-story
 ```
 
-## Error Handling
+---
 
-All endpoints return error messages in the following format:
+## API Documentation
 
-```json
-{
-  "error": "Error description here"
-}
-```
+Once the server is running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-Common errors:
-- **Invalid API key**: Check your `.env` file
-- **Unsupported audio format**: Use WAV, MP3, or other supported formats
-- **File too large**: Deepgram has file size limits
+These provide interactive API documentation where you can test endpoints directly in your browser.
 
-## Development
+---
 
-### Install Development Dependencies
+## Notes
 
-```bash
-pip install -r requirements.txt
-```
+- Temporary audio files are automatically cleaned up after processing
+- The API uses Gemini 2.5 Flash for fast story generation
+- Deepgram Nova-3 provides high-accuracy transcription
+- All responses include proper error handling
 
-### Run in Development Mode
+---
 
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+## Need Help?
 
-### Environment Variables
+If you encounter issues:
+1. Check the server logs in your terminal
+2. Verify your API keys are valid
+3. Ensure all dependencies are installed
+4. Check the audio file format is supported
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DEEPGRAM_API_KEY` | Your Deepgram API key | Yes |
-
-## Security Notes
-
-⚠️ **Important:**
-- Never commit your `.env` file to version control
-- Add `.env` to your `.gitignore`
-- Keep your API key secure
-- Use environment variables in production
-
-## Requirements.txt
-
-```txt
-fastapi==0.104.1
-uvicorn==0.24.0
-deepgram-sdk==3.2.0
-python-dotenv==1.0.0
-python-multipart==0.0.6
-```
-
-## License
-
-[Your License Here]
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues and questions:
-- Deepgram Documentation: https://developers.deepgram.com/
-- FastAPI Documentation: https://fastapi.tiangolo.com/
-
-## Acknowledgments
-
-- Powered by [Deepgram](https://deepgram.com/)
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
+Happy storytelling! 🎙️📖🔊
